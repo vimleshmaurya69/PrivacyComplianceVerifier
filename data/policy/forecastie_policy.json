@@ -1,0 +1,40 @@
+{
+    "app": "Forecastie",
+    "sources": [
+        {
+            "type": "app_metadata",
+            "source": "F-Droid",
+            "url": "https://f-droid.org/en/packages/cz.martykan.forecastie/",
+            "reliability": "primary"
+        },
+        {
+            "type": "source_code",
+            "source": "Forecastie GitHub repository",
+            "url": "https://github.com/martykan/forecastie",
+            "reliability": "primary"
+        }
+    ],
+    "declared_practices": [
+        {
+            "data": "Location",
+            "category": "Location",
+            "purpose": "Weather location",
+            "source_type": "app_metadata",
+            "evidence": "Application requests approximate and precise foreground location."
+        },
+        {
+            "data": "Location",
+            "category": "Location",
+            "purpose": "Weather retrieval",
+            "source_type": "source_code",
+            "evidence": "Application uses location information for weather functionality."
+        },
+        {
+            "data": "Weather API",
+            "category": "Third Party Service",
+            "purpose": "Weather data retrieval",
+            "source_type": "app_metadata",
+            "evidence": "Forecastie gathers weather data from OpenWeatherMap."
+        }
+    ]
+}

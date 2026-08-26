@@ -1,0 +1,24 @@
+{
+    "app_name": "WhatsApp",
+    "evidence_source": "Frida",
+    "observations": [
+        {
+            "data_type": "Location",
+            "privacy_category": "Location",
+            "observation": "Latitude and longitude were observed in Android Location objects during WhatsApp location functionality.",
+            "status": "observed"
+        },
+        {
+            "data_type": "Photos",
+            "privacy_category": "Personal Information",
+            "observation": "WhatsApp accessed image files through FileInputStream and Android media-provider queries.",
+            "status": "observed"
+        },
+        {
+            "data_type": "Voice Notes",
+            "privacy_category": "Personal Information",
+            "observation": "WhatsApp accessed WhatsApp Voice Notes .opus files through FileInputStream.",
+            "status": "observed"
+        }
+    ]
+}

@@ -1,0 +1,10 @@
+{
+    "app_name": "Forecastie",
+    "package_name": "cz.martykan.forecastie",
+    "application_services": [
+        "openweathermap.org",
+        "openstreetmap.org"
+    ],
+    "har_file": "har/forecastie.har",
+    "policy_file": "policy/forecastie_policy.json"
+}

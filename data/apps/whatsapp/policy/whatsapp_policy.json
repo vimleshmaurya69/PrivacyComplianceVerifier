@@ -1,0 +1,74 @@
+{
+    "app_name": "WhatsApp",
+    "policy_available": true,
+    "source": "https://www.whatsapp.com/privacy",
+    "last_verified": "2026-08-25",
+
+    "declared_practices": [
+        {
+            "category": "Location",
+            "data_type": "Location",
+            "purpose": "Location sharing and related functionality",
+            "recipient": "WhatsApp",
+            "source": "privacy_policy"
+        },
+        {
+            "category": "Personal Information",
+            "data_type": "Phone Number",
+            "purpose": "Account registration and authentication",
+            "recipient": "WhatsApp",
+            "source": "privacy_policy"
+        },
+        {
+            "category": "Personal Information",
+            "data_type": "Contacts",
+            "purpose": "Connecting with contacts and messaging functionality",
+            "recipient": "WhatsApp",
+            "source": "privacy_policy"
+        },
+        {
+            "category": "Personal Information",
+            "data_type": "Messages and Media",
+            "purpose": "Messaging and communication functionality",
+            "recipient": "WhatsApp",
+            "source": "privacy_policy"
+        },
+        {
+            "category": "Device Identifier",
+            "data_type": "Device and app information",
+            "purpose": "Service operation, security and account functionality",
+            "recipient": "WhatsApp",
+            "source": "privacy_policy"
+        },
+        {
+            "category": "Network Information",
+            "data_type": "Network information",
+            "purpose": "Service operation and connectivity",
+            "recipient": "WhatsApp",
+            "source": "privacy_policy"
+        },
+        {
+            "category": "Authentication",
+            "data_type": "Account authentication information",
+            "purpose": "Account security and authentication",
+            "recipient": "WhatsApp",
+            "source": "privacy_policy"
+        }
+    ],
+
+    "declared_categories": [
+        "Location",
+        "Personal Information",
+        "Device Identifier",
+        "Network Information",
+        "Authentication"
+    ],
+
+    "third_party_services": [],
+
+    "tracking": {
+        "advertising_libraries": false,
+        "third_party_tracking": false,
+        "analytics": false
+    }
+}

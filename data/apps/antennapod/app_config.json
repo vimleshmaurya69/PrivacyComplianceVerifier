@@ -1,0 +1,23 @@
+{
+    "app_name": "AntennaPod",
+    "package_name": "de.danoeh.antennapod",
+
+    "application_services": [],
+
+    "third_party_services": [
+        "api.podcastindex.org",
+        "api.spreaker.com",
+        "feeds.simplecast.com",
+        "simplecastcdn.com",
+        "simplecastaudio.com",
+        "cloudfront.net",
+        "sndcdn.com",
+        "itunes.apple.com",
+        "mzstatic.com",
+        "megaphone.imgix.net",
+        "op3.dev"
+    ],
+
+    "har_file": "har/antennapod.har",
+    "policy_file": "policy/antennapod_policy.json"
+}

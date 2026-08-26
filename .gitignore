@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.py[cod]
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Generated outputs
+data/output/
+
+# Logs / temporary files
+*.log
+*.tmp
+*.bak
+
+# Environment / secrets
+.env
+*.env
+
+# Captured traffic containing potentially sensitive headers
+data/apps/forecastie/har/
+data/captures/
+data/har/
+
+# Captured traffic containing potentially sensitive or oversized data
+data/apps/forecastie/har/
+data/apps/antennapod/har/
+data/captures/
+data/har/
