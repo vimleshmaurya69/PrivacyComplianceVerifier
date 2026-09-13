@@ -1,0 +1,113 @@
+{
+    "app": "Spotify",
+    "package": "com.spotify.music",
+    "policy_available": true,
+    "source": "https://www.spotify.com/al/legal/privacy-policy/",
+    "website_source": "https://portal.spotify.com/privacy-policy",
+    "last_verified": "2026-09-11",
+    "policy_scope": [
+        "Spotify streaming services on any device",
+        "Spotify websites covered by the main policy",
+        "Spotify Portal website has a separate policy"
+    ],
+    "declared_categories": [
+        "Personal Information",
+        "Device Information",
+        "Device Identifier",
+        "Network Information",
+        "Location",
+        "Authentication",
+        "Search",
+        "Usage Data",
+        "Cookies",
+        "Media Access",
+        "Microphone",
+        "Financial Information"
+    ],
+    "declared_practices": [
+        {
+            "category": "Personal Information",
+            "data_type": "Display name, email, phone, date of birth, gender, address and account information",
+            "purpose": "Account and service provision",
+            "source": "privacy_policy"
+        },
+        {
+            "category": "Authentication",
+            "data_type": "Password and authentication-partner account information",
+            "purpose": "Account access and security",
+            "source": "privacy_policy"
+        },
+        {
+            "category": "Device Information",
+            "data_type": "Operating system, browser, app version, device characteristics and network/device performance",
+            "purpose": "Service operation and troubleshooting",
+            "source": "privacy_policy"
+        },
+        {
+            "category": "Device Identifier",
+            "data_type": "Device IDs and online identifiers",
+            "purpose": "Service operation, personalization and security",
+            "source": "privacy_policy"
+        },
+        {
+            "category": "Network Information",
+            "data_type": "IP address, URL information and network connection type",
+            "purpose": "Service operation, security and location estimation",
+            "source": "privacy_policy"
+        },
+        {
+            "category": "Location",
+            "data_type": "General location and, with permission, precise location",
+            "purpose": "Content licensing, recommendations and nearby event features",
+            "source": "privacy_policy"
+        },
+        {
+            "category": "Search",
+            "data_type": "Search queries",
+            "purpose": "Service operation and personalization",
+            "source": "privacy_policy"
+        },
+        {
+            "category": "Usage Data",
+            "data_type": "Streaming history, playlists, library, browsing history, interactions, AI prompts and ad engagement",
+            "purpose": "Service provision, personalization, analytics and advertising",
+            "source": "privacy_policy"
+        },
+        {
+            "category": "Cookies",
+            "data_type": "Cookie and similar online identifiers",
+            "purpose": "Service operation and personalization",
+            "source": "privacy_policy"
+        },
+        {
+            "category": "Media Access",
+            "data_type": "Audio and other content submitted or used through Spotify features",
+            "purpose": "Service functionality",
+            "source": "privacy_policy"
+        },
+        {
+            "category": "Microphone",
+            "data_type": "Voice data when voice features are used",
+            "purpose": "Voice features",
+            "source": "privacy_policy"
+        },
+        {
+            "category": "Financial Information",
+            "data_type": "Payment method and purchase information",
+            "purpose": "Purchases, subscriptions and billing",
+            "source": "privacy_policy"
+        },
+        {
+            "category": "Personal Information",
+            "data_type": "Name, business email, job title, company and address on Spotify Portal",
+            "purpose": "Portal website access and support",
+            "recipient": "Spotify",
+            "source": "portal_website_privacy_policy"
+        }
+    ],
+    "tracking": {
+        "advertising_libraries": false,
+        "third_party_tracking": true,
+        "analytics": true
+    }
+}

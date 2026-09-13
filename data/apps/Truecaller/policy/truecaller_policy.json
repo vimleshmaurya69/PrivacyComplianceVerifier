@@ -1,0 +1,112 @@
+{
+    "app": "Truecaller",
+    "package": "com.truecaller",
+    "policy_available": true,
+    "source": "https://www.truecaller.com/privacy-policy",
+    "privacy_summary_source": "https://www.truecaller.com/privacy-summary-india",
+    "last_verified": "2026-09-11",
+    "policy_scope": [
+        "Truecaller app",
+        "Truecaller website and other Services"
+    ],
+    "declared_categories": [
+        "Personal Information",
+        "Contacts",
+        "Device Information",
+        "Device Identifier",
+        "Network Information",
+        "Location",
+        "Camera",
+        "Local Media",
+        "Media Access",
+        "Microphone",
+        "Authentication",
+        "Usage Data",
+        "Cookies"
+    ],
+    "declared_practices": [
+        {
+            "category": "Personal Information",
+            "data_type": "Name, phone number, profile information and optional email/address/social information",
+            "purpose": "Profile creation, identification and service provision",
+            "source": "privacy_policy"
+        },
+        {
+            "category": "Contacts",
+            "data_type": "Contact information",
+            "purpose": "Caller identification and contact management; contact data may remain local depending on feature",
+            "source": "privacy_policy_and_india_summary"
+        },
+        {
+            "category": "Device Information",
+            "data_type": "Device type, installed apps and device information",
+            "purpose": "Service operation, security, analytics and improvement",
+            "source": "privacy_policy"
+        },
+        {
+            "category": "Device Identifier",
+            "data_type": "Unique identifiers / mobile application identifiers",
+            "purpose": "Recognition, security, analytics and advertising",
+            "source": "privacy_policy"
+        },
+        {
+            "category": "Network Information",
+            "data_type": "IP address and network information",
+            "purpose": "Service operation and security",
+            "source": "privacy_policy"
+        },
+        {
+            "category": "Location",
+            "data_type": "Device/general location; optional location permission",
+            "purpose": "Feature-specific functionality and service personalization",
+            "source": "privacy_policy_and_privacy_center"
+        },
+        {
+            "category": "Camera",
+            "data_type": "Camera input",
+            "purpose": "Profile picture, scanning and optional features",
+            "source": "privacy_center_and_permissions"
+        },
+        {
+            "category": "Local Media",
+            "data_type": "Photos and files on device",
+            "purpose": "Profile picture and optional messaging/media features",
+            "source": "privacy_center_and_permissions"
+        },
+        {
+            "category": "Media Access",
+            "data_type": "Photos, multimedia and message media",
+            "purpose": "Optional communication and profile features",
+            "source": "permissions"
+        },
+        {
+            "category": "Microphone",
+            "data_type": "Microphone/audio",
+            "purpose": "Assistant, call recording and audio features where supported",
+            "source": "privacy_center_and_permissions"
+        },
+        {
+            "category": "Authentication",
+            "data_type": "Phone-number verification / OTP",
+            "purpose": "Account creation and login",
+            "source": "privacy_policy"
+        },
+        {
+            "category": "Usage Data",
+            "data_type": "App interactions, usage data and crash logs",
+            "purpose": "Service improvement, analytics, personalization and security",
+            "source": "privacy_summary_india"
+        },
+        {
+            "category": "Cookies",
+            "data_type": "Cookies, web beacons, pixel tags and mobile application identifiers",
+            "purpose": "Recognition, security, analytics and advertising",
+            "source": "privacy_policy"
+        }
+    ],
+    "tracking": {
+        "advertising_libraries": false,
+        "third_party_tracking": true,
+        "analytics": true
+    }
+}

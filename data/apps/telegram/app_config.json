@@ -1,0 +1,8 @@
+{
+    "app_name": "Telegram",
+    "package_name": "org.telegram.messenger.web",
+    "application_services": [],
+    "third_party_services": [],
+    "har_file": "har/telegram.har",
+    "policy_file": "policy/telegram_policy.json"
+}

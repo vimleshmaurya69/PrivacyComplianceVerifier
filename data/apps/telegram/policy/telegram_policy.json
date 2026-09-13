@@ -1,0 +1,90 @@
+{
+    "app_name": "Telegram",
+    "policy_available": true,
+    "source": "https://telegram.org/privacy",
+    "last_verified": "2026-09-11",
+    "policy_scope": [
+        "Telegram mobile apps",
+        "Telegram Web and other Telegram Services"
+    ],
+    "declared_practices": [
+        {
+            "category": "Personal Information",
+            "data_type": "Phone number, profile name, profile picture, about information and username",
+            "purpose": "Account creation, identification and communication",
+            "recipient": "Telegram / other Telegram users as applicable",
+            "source": "privacy_policy"
+        },
+        {
+            "category": "Personal Information",
+            "data_type": "Contacts",
+            "purpose": "Contact synchronization and discovery",
+            "recipient": "Telegram",
+            "source": "privacy_policy"
+        },
+        {
+            "category": "Personal Information",
+            "data_type": "Messages, media and files in cloud chats",
+            "purpose": "Cloud messaging and cross-device access",
+            "recipient": "Telegram",
+            "source": "privacy_policy"
+        },
+        {
+            "category": "Authentication",
+            "data_type": "Login and two-step verification information",
+            "purpose": "Account access and security",
+            "recipient": "Telegram",
+            "source": "privacy_policy"
+        },
+        {
+            "category": "Network Information",
+            "data_type": "IP address",
+            "purpose": "Security, spam and abuse prevention",
+            "recipient": "Telegram",
+            "source": "privacy_policy"
+        },
+        {
+            "category": "Device Identifier",
+            "data_type": "Devices and Telegram apps used",
+            "purpose": "Security, spam and abuse prevention",
+            "recipient": "Telegram",
+            "source": "privacy_policy"
+        },
+        {
+            "category": "Location",
+            "data_type": "Location and Live Location",
+            "purpose": "Location sharing functionality",
+            "recipient": "Telegram / selected recipients",
+            "source": "privacy_policy"
+        },
+        {
+            "category": "Cookies",
+            "data_type": "Web cookies",
+            "purpose": "Operating and providing Telegram Web; login and customization",
+            "recipient": "Telegram Web",
+            "source": "privacy_policy"
+        },
+        {
+            "category": "Usage Data",
+            "data_type": "Aggregated usage metadata / frequent-contact ratings",
+            "purpose": "Advanced features and cross-device functionality",
+            "recipient": "Telegram",
+            "source": "privacy_policy"
+        }
+    ],
+    "declared_categories": [
+        "Personal Information",
+        "Authentication",
+        "Network Information",
+        "Device Identifier",
+        "Location",
+        "Cookies",
+        "Usage Data"
+    ],
+    "third_party_services": [],
+    "tracking": {
+        "advertising_libraries": false,
+        "third_party_tracking": false,
+        "analytics": false
+    }
+}

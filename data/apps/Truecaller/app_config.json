@@ -1,0 +1,16 @@
+{
+  "app_name": "Truecaller",
+  "package_name": "com.truecaller",
+  "application_services": [
+    "truecaller.com",
+    "truecaller"
+  ],
+  "third_party_services": [
+    "google.com",
+    "googleapis.com",
+    "facebook.com",
+    "fbcdn.net"
+  ],
+  "har_file": "har/truecaller.har",
+  "policy_file": "policy/truecaller_policy.json"
+}

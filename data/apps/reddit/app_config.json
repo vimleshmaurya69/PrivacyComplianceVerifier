@@ -1,0 +1,19 @@
+{
+  "app_name": "Reddit",
+  "package_name": "com.reddit.frontpage",
+  "application_services": [
+    "reddit.com",
+    "redditmedia.com",
+    "redd.it",
+    "redditstatic.com",
+    "redditspace.com"
+  ],
+  "third_party_services": [
+    "google.com",
+    "googleapis.com",
+    "gstatic.com",
+    "recaptcha.net"
+  ],
+  "har_file": "har/reddit.har",
+  "policy_file": "policy/reddit_policy.json"
+}

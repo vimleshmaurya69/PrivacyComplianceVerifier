@@ -56,16 +56,16 @@ class JSONExporter:
         with open(file_path, "w", encoding="utf-8") as file:
             json.dump(inventory, file, indent=4)
 
-        print(f"[✓] privacy_inventory.json exported")
+        print("[✓] privacy_inventory.json exported")
 
-    def export_privacy_inventory(self, inventory):
+    def export_sensitive_artifacts(self, artifacts: List[dict]):
 
         file_path = os.path.join(
-         self.output_directory,
-        "privacy_inventory.json"
-     )
+            self.output_directory,
+            "sensitive_artifacts.json"
+        )
 
         with open(file_path, "w", encoding="utf-8") as file:
-            json.dump(inventory, file, indent=4)
+            json.dump(artifacts, file, indent=4)
 
-        print("[✓] privacy_inventory.json exported")
+        print("[✓] sensitive_artifacts.json exported")

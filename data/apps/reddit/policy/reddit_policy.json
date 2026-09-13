@@ -1,0 +1,100 @@
+{
+    "app": "Reddit",
+    "package": "com.reddit.frontpage",
+    "policy_available": true,
+    "source": "https://www.reddit.com/policies/privacy-policy",
+    "last_verified": "2026-09-11",
+    "policy_scope": [
+        "Reddit mobile apps",
+        "Reddit website",
+        "widgets",
+        "APIs",
+        "emails and other online services"
+    ],
+    "declared_categories": [
+        "Personal Information",
+        "Device Information",
+        "Device Identifier",
+        "Network Information",
+        "Location",
+        "Authentication",
+        "Search",
+        "Usage Data",
+        "Cookies",
+        "Media Access",
+        "Financial Information"
+    ],
+    "declared_practices": [
+        {
+            "category": "Personal Information",
+            "data_type": "Username, email, phone number, profile information, messages and submitted content",
+            "purpose": "Account and service functionality",
+            "source": "privacy_policy"
+        },
+        {
+            "category": "Authentication",
+            "data_type": "Password, SSO and account verification information",
+            "purpose": "Account access and security",
+            "source": "privacy_policy"
+        },
+        {
+            "category": "Device Information",
+            "data_type": "Device information, operating system, browser, carrier and device settings",
+            "purpose": "Service operation and security",
+            "source": "privacy_policy"
+        },
+        {
+            "category": "Device Identifier",
+            "data_type": "Device IDs and other identifiers",
+            "purpose": "Service operation, personalization and security",
+            "source": "privacy_policy"
+        },
+        {
+            "category": "Network Information",
+            "data_type": "IP address, user-agent, network connection information and requested URLs",
+            "purpose": "Service operation, security and analytics",
+            "source": "privacy_policy"
+        },
+        {
+            "category": "Location",
+            "data_type": "Approximate location derived from logs and user-provided location",
+            "purpose": "Feed and recommendation customization",
+            "source": "privacy_policy"
+        },
+        {
+            "category": "Search",
+            "data_type": "Search terms",
+            "purpose": "Service operation and personalization",
+            "source": "privacy_policy"
+        },
+        {
+            "category": "Usage Data",
+            "data_type": "Pages visited, interactions, votes, clicks, subscriptions and other actions",
+            "purpose": "Service provision, personalization, advertising and analytics",
+            "source": "privacy_policy"
+        },
+        {
+            "category": "Cookies",
+            "data_type": "Cookies and similar technologies",
+            "purpose": "Service operation, personalization, advertising and measurement",
+            "source": "privacy_policy"
+        },
+        {
+            "category": "Media Access",
+            "data_type": "Images, GIFs, audio and video submitted through Services",
+            "purpose": "User content and communication",
+            "source": "privacy_policy"
+        },
+        {
+            "category": "Financial Information",
+            "data_type": "Payment and transaction information",
+            "purpose": "Purchases and paid services",
+            "source": "privacy_policy"
+        }
+    ],
+    "tracking": {
+        "advertising_libraries": false,
+        "third_party_tracking": true,
+        "analytics": true
+    }
+}

@@ -1,0 +1,32 @@
+{
+    "app_name": "VLC",
+    "policy_available": true,
+    "source": "https://www.videolan.org/vlc/privacy.php",
+    "last_verified": "2026-09-11",
+    "excluded_from_study": true,
+    "exclusion_reason": "VLC was removed from the final tested application set because the captured run produced no useful network traffic and the study scope was narrowed to apps that interact with the internet during normal functioning.",
+    "declared_categories": [
+        "Device Information",
+        "Authentication",
+        "Local Media"
+    ],
+    "declared_practices": [
+        {
+            "category": "Device Information",
+            "description": "VideoLAN states that it does not collect statistics, personal information or analytics beyond mechanisms built into mobile/embedded distribution channels; VLC mobile versions have the same metadata requests as VLC."
+        },
+        {
+            "category": "Authentication",
+            "description": "Authentication credentials may be stored locally only when explicitly requested; VideoLAN states it does not access or collect those credentials."
+        },
+        {
+            "category": "Local Media",
+            "description": "VLC plays media files and network streams; user-requested media remains under local device/platform control."
+        }
+    ],
+    "tracking": {
+        "advertising_libraries": false,
+        "third_party_tracking": false,
+        "analytics": false
+    }
+}

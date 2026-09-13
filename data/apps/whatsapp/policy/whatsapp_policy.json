@@ -2,73 +2,126 @@
     "app_name": "WhatsApp",
     "policy_available": true,
     "source": "https://www.whatsapp.com/privacy",
-    "last_verified": "2026-08-25",
-
+    "cookie_source": "https://www.whatsapp.com/legal/cookies",
+    "last_verified": "2026-09-11",
+    "policy_scope": [
+        "WhatsApp Services",
+        "WhatsApp Web and desktop/web-based Services"
+    ],
     "declared_practices": [
         {
-            "category": "Location",
-            "data_type": "Location",
-            "purpose": "Location sharing and related functionality",
+            "category": "Personal Information",
+            "data_type": "Mobile phone number, profile name, profile photo and about information",
+            "purpose": "Account creation and service functionality",
             "recipient": "WhatsApp",
             "source": "privacy_policy"
         },
         {
             "category": "Personal Information",
-            "data_type": "Phone Number",
-            "purpose": "Account registration and authentication",
+            "data_type": "Contacts / phone numbers",
+            "purpose": "Connecting users and messaging functionality",
             "recipient": "WhatsApp",
             "source": "privacy_policy"
         },
         {
             "category": "Personal Information",
-            "data_type": "Contacts",
-            "purpose": "Connecting with contacts and messaging functionality",
-            "recipient": "WhatsApp",
+            "data_type": "Messages and media",
+            "purpose": "Messaging and communication; delivery of encrypted messages",
+            "recipient": "WhatsApp / intended recipients",
             "source": "privacy_policy"
         },
         {
-            "category": "Personal Information",
-            "data_type": "Messages and Media",
-            "purpose": "Messaging and communication functionality",
+            "category": "Device Information",
+            "data_type": "Hardware model, operating system, battery level, signal strength, app/browser version, mobile network and connection information",
+            "purpose": "Service operation, diagnostics and security",
             "recipient": "WhatsApp",
             "source": "privacy_policy"
         },
         {
             "category": "Device Identifier",
-            "data_type": "Device and app information",
+            "data_type": "Device identifiers and identifiers associated with Facebook Company Products",
             "purpose": "Service operation, security and account functionality",
-            "recipient": "WhatsApp",
+            "recipient": "WhatsApp / relevant service providers",
             "source": "privacy_policy"
         },
         {
             "category": "Network Information",
-            "data_type": "Network information",
-            "purpose": "Service operation and connectivity",
+            "data_type": "IP address, mobile operator/ISP, network and connection information",
+            "purpose": "Service operation, security and general location estimation",
             "recipient": "WhatsApp",
             "source": "privacy_policy"
         },
         {
+            "category": "Location",
+            "data_type": "Precise location when permission is granted and general location inferred from IP/area code",
+            "purpose": "Location features, diagnostics and related functionality",
+            "recipient": "WhatsApp / selected recipients",
+            "source": "privacy_policy"
+        },
+        {
             "category": "Authentication",
-            "data_type": "Account authentication information",
-            "purpose": "Account security and authentication",
+            "data_type": "Account verification and authentication information",
+            "purpose": "Account access, security and service integrity",
             "recipient": "WhatsApp",
+            "source": "privacy_policy"
+        },
+        {
+            "category": "Usage Data",
+            "data_type": "Service activity, settings, interactions, feature use, time/frequency/duration, diagnostics and crash information",
+            "purpose": "Service operation, improvement, security and analytics",
+            "recipient": "WhatsApp / service providers",
+            "source": "privacy_policy"
+        },
+        {
+            "category": "Cookies",
+            "data_type": "Cookies and other web technologies",
+            "purpose": "Operating, securing, personalizing, analyzing and providing WhatsApp Web/desktop and web-based Services",
+            "recipient": "WhatsApp",
+            "source": "cookies_policy"
+        },
+        {
+            "category": "Camera",
+            "data_type": "Camera access",
+            "purpose": "Sharing photos/media and related features",
+            "recipient": "WhatsApp",
+            "source": "privacy_policy"
+        },
+        {
+            "category": "Local Media",
+            "data_type": "Photos and media from device",
+            "purpose": "Sharing media with contacts",
+            "recipient": "WhatsApp / intended recipients",
+            "source": "privacy_policy"
+        },
+        {
+            "category": "Media Access",
+            "data_type": "Photos, videos, documents and other media",
+            "purpose": "Messaging and communication",
+            "recipient": "WhatsApp / intended recipients",
             "source": "privacy_policy"
         }
     ],
-
     "declared_categories": [
-        "Location",
         "Personal Information",
+        "Device Information",
         "Device Identifier",
         "Network Information",
-        "Authentication"
+        "Location",
+        "Authentication",
+        "Usage Data",
+        "Cookies",
+        "Camera",
+        "Local Media",
+        "Media Access"
     ],
-
-    "third_party_services": [],
-
+    "third_party_services": [
+        "Third-party service providers",
+        "Meta/Facebook Companies",
+        "integrated backup providers where used"
+    ],
     "tracking": {
         "advertising_libraries": false,
-        "third_party_tracking": false,
-        "analytics": false
+        "third_party_tracking": true,
+        "analytics": true
     }
 }

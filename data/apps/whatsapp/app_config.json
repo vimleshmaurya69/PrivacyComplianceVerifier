@@ -1,8 +1,14 @@
 {
     "app_name": "WhatsApp",
     "package_name": "com.whatsapp",
-    "application_services": [],
+
+    "application_services": [
+        "whatsapp.com",
+        "whatsapp.net"
+    ],
+
     "third_party_services": [],
+
     "har_file": "har/whatsapp.har",
     "policy_file": "policy/whatsapp_policy.json"
 }

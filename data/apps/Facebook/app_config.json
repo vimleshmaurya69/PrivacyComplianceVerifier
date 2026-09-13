@@ -1,0 +1,17 @@
+{
+  "app_name": "Facebook",
+  "package_name": "com.facebook.katana",
+  "application_services": [
+    "facebook.com",
+    "facebook.net",
+    "fbcdn.net",
+    "fbsbx.com"
+  ],
+  "third_party_services": [
+    "google.com",
+    "googleapis.com",
+    "gstatic.com"
+  ],
+  "har_file": "har/facebook.har",
+  "policy_file": "policy/facebook_policy.json"
+}

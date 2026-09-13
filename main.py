@@ -1,6 +1,7 @@
 import argparse
 import json
 import os
+import statistics
 
 from src.app_manager import AppManager
 from src.parser.har_loader import HarLoader
@@ -11,6 +12,7 @@ from src.analyzer.privacy_normalizer import PrivacyNormalizer
 from src.analyzer.privacy_inventory import PrivacyInventoryGenerator
 from src.exporter.json_exporter import JSONExporter
 from src.comparator.policy_comparator import PolicyComparator
+from src.utils.privacy_taxonomy import PRIVACY_CATEGORY_MAP
 
 
 def main(app_name):
@@ -107,6 +109,21 @@ def main(app_name):
     requests = normalizer.normalize()
 
     # ==================================================
+    # Unique Sensitive Artifact Summary
+    # ==================================================
+
+    # Request-level findings are intentionally preserved in each Request.
+    # The detector separately aggregates repeated uses of the same artifact
+    # so repeated Authorization headers do not become separate credentials.
+    unique_sensitive_artifacts = detector.get_unique_findings()
+
+    for artifact in unique_sensitive_artifacts:
+        artifact["privacy_category"] = PRIVACY_CATEGORY_MAP.get(
+            artifact.get("type", ""),
+            "Unknown"
+        )
+
+    # ==================================================
     # Privacy Inventory
     # ==================================================
 
@@ -159,13 +176,61 @@ def main(app_name):
                 sensitive_findings_by_category.get(category, 0) + 1
             )
 
+    unique_artifacts_by_category = {}
+
+    for artifact in unique_sensitive_artifacts:
+        category = artifact.get("privacy_category", "Unknown")
+        unique_artifacts_by_category[category] = (
+            unique_artifacts_by_category.get(category, 0) + 1
+        )
+
+    # ==================================================
+    # Frida Evidence
+    # ==================================================
+
+    frida_evidence = {}
+    frida_observations = []
+
+    if policy_file.exists():
+
+        frida_path = policy_file.parent.parent / "frida" / "frida_evidence.json"
+
+        if frida_path.exists():
+
+            try:
+                with open(frida_path, "r", encoding="utf-8") as file:
+                    frida_evidence = json.load(file)
+
+                frida_observations = frida_evidence.get("observations", [])
+
+                if not isinstance(frida_observations, list):
+                    frida_observations = []
+
+            except Exception as e:
+                print(f"[WARNING] Frida evidence could not be loaded: {e}")
+                frida_evidence = {}
+                frida_observations = []
+
     # ==================================================
     # Overall Statistics
     # ==================================================
 
+    unique_artifacts_by_type = {}
+
+    for artifact in unique_sensitive_artifacts:
+        artifact_type = artifact.get("type", "Unknown")
+
+        unique_artifacts_by_type[artifact_type] = (
+            unique_artifacts_by_type.get(artifact_type, 0) + 1
+        )
+
     statistics = {
         "app_name": app_name,
         "total_requests": len(requests),
+        "har_network_requests": len(requests),
+        "frida_privacy_observations": len(frida_observations),
+        "total_evidence_events": (len(requests) + len(frida_observations)),
+        "unique_artifacts_by_type": unique_artifacts_by_type,
         "application_requests": sum(
             1 for r in requests if r.traffic_type == "Application"
         ),
@@ -176,9 +241,15 @@ def main(app_name):
             1 for r in requests if r.traffic_type == "Third Party"
         ),
         "unknown_requests": sum(1 for r in requests if r.traffic_type == "Unknown"),
+        # Occurrences = request-level evidence observations. This retains
+        # historical counting semantics for reproducibility.
+        "sensitive_data_occurrences": sum(len(r.sensitive_data) for r in requests),
+        # Unique artifacts = distinct sensitive values grouped by fingerprint.
+        "unique_sensitive_artifacts": len(unique_sensitive_artifacts),
         "sensitive_data_findings": sum(len(r.sensitive_data) for r in requests),
         "sensitive_findings_by_traffic": (sensitive_findings_by_traffic),
         "sensitive_findings_by_category": (sensitive_findings_by_category),
+        "unique_artifacts_by_category": (unique_artifacts_by_category),
     }
     # ==================================================
     # Export Traffic Analysis Results
@@ -191,6 +262,8 @@ def main(app_name):
     exporter.export_statistics(statistics)
 
     exporter.export_privacy_inventory(privacy_inventory)
+
+    exporter.export_sensitive_artifacts(unique_sensitive_artifacts)
 
     # ==================================================
     # Privacy Compliance Comparison
@@ -214,31 +287,12 @@ def main(app_name):
                 policy_data = json.load(file)
 
             # ------------------------------------------
-            # Load Frida Evidence
+            # Frida Evidence Status
             # ------------------------------------------
 
-            frida_evidence = {}
-
-            frida_path = (
-                policy_file.parent.parent
-                / "frida"
-                / "frida_evidence.json"
-            )
-
-            if frida_path.exists():
-
-                with open(
-                    frida_path,
-                    "r",
-                    encoding="utf-8"
-                ) as file:
-
-                    frida_evidence = json.load(file)
-
+            if frida_evidence:
                 print("[✓] Frida evidence loaded.")
-
             else:
-
                 print("[i] No Frida evidence found.")
 
             # ------------------------------------------
@@ -246,10 +300,7 @@ def main(app_name):
             # ------------------------------------------
 
             comparator = PolicyComparator(
-                privacy_inventory,
-                policy_data,
-                app_name,
-                frida_evidence
+                privacy_inventory, policy_data, app_name, frida_evidence
             )
 
             # ------------------------------------------
@@ -305,7 +356,13 @@ def main(app_name):
 
     print(f"Application                 : " f"{statistics['app_name']}")
 
-    print(f"Total Requests              : " f"{statistics['total_requests']}")
+    print(f"HAR Network Requests        : " f"{statistics['har_network_requests']}")
+
+    print(
+        f"Frida Privacy Observations  : " f"{statistics['frida_privacy_observations']}"
+    )
+
+    print(f"Total Evidence Events       : " f"{statistics['total_evidence_events']}")
 
     print(f"Application Requests        : " f"{statistics['application_requests']}")
 
@@ -315,7 +372,9 @@ def main(app_name):
 
     print(f"Unknown Requests            : " f"{statistics['unknown_requests']}")
 
-    print(f"Sensitive Data Findings     : " f"{statistics['sensitive_data_findings']}")
+    print(f"Sensitive Data Occurrences   : " f"{statistics['sensitive_data_occurrences']}")
+    print(f"Unique Sensitive Artifacts   : " f"{statistics['unique_sensitive_artifacts']}")
+
     print("\nSensitive Findings by Traffic Type")
 
     for traffic_type, count in statistics["sensitive_findings_by_traffic"].items():
@@ -328,6 +387,17 @@ def main(app_name):
 
         print(f"   {category:<25}: {count}")
 
+    print("\nUnique Artifacts by Privacy Category")
+
+    for category, count in statistics["unique_artifacts_by_category"].items():
+
+        print(f"   {category:<25}: {count}")
+
+    print("\nUnique Artifacts by Type")
+
+    for artifact_type, count in statistics["unique_artifacts_by_type"].items():
+
+        print(f"   {artifact_type:<25}: {count}")
     # ==================================================
     # Privacy Categories
     # ==================================================
@@ -381,6 +451,8 @@ def main(app_name):
     print(f"   {output_path / 'statistics.json'}")
 
     print(f"   {output_path / 'privacy_inventory.json'}")
+
+    print(f"   {output_path / 'sensitive_artifacts.json'}")
 
     if compliance_results is not None:
 

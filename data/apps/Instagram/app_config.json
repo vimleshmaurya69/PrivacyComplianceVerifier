@@ -1,0 +1,20 @@
+{
+  "app_name": "Instagram",
+  "package_name": "com.instagram.android",
+
+  "application_services": [
+    "instagram.com",
+    "instagram"
+  ],
+
+  "third_party_services": [
+    "facebook.com",
+    "fbcdn.net",
+    "fbsbx.com",
+    "googleapis.com",
+    "google.com"
+  ],
+
+  "har_file": "har/instagram.har",
+  "policy_file": "Policy/instagram_policy.json"
+}

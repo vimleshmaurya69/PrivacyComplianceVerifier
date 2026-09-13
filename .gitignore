@@ -37,3 +37,10 @@ data/apps/forecastie/har/
 data/apps/antennapod/har/
 data/captures/
 data/har/
+
+# Raw captured traffic - never commit
+data/apps/**/har/
+
+# Raw Frida captures/logs - may contain sensitive data
+data/apps/**/Frida/
+data/apps/**/frida/

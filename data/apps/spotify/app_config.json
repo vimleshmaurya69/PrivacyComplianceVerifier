@@ -1,0 +1,24 @@
+{
+  "app_name": "Spotify",
+  "package_name": "com.spotify.music",
+  "application_services": [
+    "spotify.com",
+    "spotifycdn.com",
+    "scdn.co",
+    "spotifycdn.net"
+  ],
+  "third_party_services": [
+    "google.com",
+    "google-analytics.com",
+    "googletagmanager.com",
+    "doubleclick.net",
+    "launchdarkly.com",
+    "newrelic.com",
+    "scorecardresearch.com",
+    "snapchat.com",
+    "sheerid.com",
+    "recaptcha.net"
+  ],
+  "har_file": "har/spotify.har",
+  "policy_file": "policy/spotify_policy.json"
+}

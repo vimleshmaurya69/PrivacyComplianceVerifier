@@ -2,90 +2,105 @@
     "app_name": "AntennaPod",
     "policy_available": true,
     "source": "https://antennapod.org/privacy/",
-    "last_verified": "2026-08-22",
-
+    "last_verified": "2026-09-11",
+    "policy_scope": [
+        "Android app",
+        "AntennaPod website"
+    ],
     "declared_practices": [
         {
-            "category": "Location",
-            "data_type": "IP Address",
-            "purpose": "Podcast discovery and search",
-            "recipient": "Podcast Index / Apple Podcasts / fyyd",
+            "category": "Personal Information",
+            "data_type": "Followed podcasts and app settings",
+            "purpose": "App functionality",
+            "recipient": "AntennaPod / local device",
             "source": "privacy_policy"
         },
         {
-            "category": "Location",
-            "data_type": "IP Address",
+            "category": "Authentication",
+            "data_type": "Authentication data",
+            "purpose": "Podcast and synchronization services",
+            "recipient": "Relevant service provider",
+            "source": "privacy_policy"
+        },
+        {
+            "category": "Device Information",
+            "data_type": "Device type, Android version, AntennaPod version",
+            "purpose": "Crash reporting / debugging",
+            "recipient": "Crash reporting service",
+            "source": "privacy_policy"
+        },
+        {
+            "category": "Network Information",
+            "data_type": "IP address",
+            "purpose": "Podcast discovery and search",
+            "recipient": "Apple Podcasts / Podcast Index / fyyd",
+            "source": "privacy_policy"
+        },
+        {
+            "category": "Network Information",
+            "data_type": "IP address and access time",
             "purpose": "Podcast feed access",
             "recipient": "Podcast hosters",
             "source": "privacy_policy"
         },
         {
             "category": "Search",
-            "data_type": "Search Query",
+            "data_type": "Search query / search terms",
             "purpose": "Podcast search",
             "recipient": "Podcast Index / Apple Podcasts / fyyd",
             "source": "privacy_policy"
         },
         {
             "category": "Device Information",
-            "data_type": "App Name",
-            "purpose": "Discovery and search requests",
-            "recipient": "Search services",
-            "source": "privacy_policy"
-        },
-        {
-            "category": "Network Metadata",
-            "data_type": "Access Time",
-            "purpose": "Podcast feed access",
-            "recipient": "Podcast hosters",
-            "source": "privacy_policy"
-        },
-        {
-            "category": "Authentication",
-            "data_type": "Authentication Data",
-            "purpose": "Podcast or synchronization services",
-            "recipient": "Relevant service provider",
+            "data_type": "App name / User-Agent information",
+            "purpose": "Discovery, search and feed access",
+            "recipient": "Search services / podcast hosters",
             "source": "privacy_policy"
         },
         {
             "category": "Synchronization",
-            "data_type": "Login Credentials",
+            "data_type": "Login credentials",
             "purpose": "Synchronization",
             "recipient": "Synchronization provider",
             "source": "privacy_policy"
         },
         {
             "category": "Synchronization",
-            "data_type": "Subscriptions",
+            "data_type": "Subscribed podcasts",
             "purpose": "Synchronization",
             "recipient": "Synchronization provider",
             "source": "privacy_policy"
         },
         {
             "category": "Synchronization",
-            "data_type": "Playback Events",
+            "data_type": "Playback events and timestamps",
+            "purpose": "Synchronization",
+            "recipient": "Synchronization provider",
+            "source": "privacy_policy"
+        },
+        {
+            "category": "Network Information",
+            "data_type": "IP address",
             "purpose": "Synchronization",
             "recipient": "Synchronization provider",
             "source": "privacy_policy"
         }
     ],
-
     "declared_categories": [
-        "Location",
-        "Search",
-        "Device Information",
-        "Network Metadata",
+        "Personal Information",
         "Authentication",
+        "Device Information",
+        "Network Information",
+        "Search",
         "Synchronization"
     ],
-
     "third_party_services": [
         "Podcast Index",
         "Apple Podcasts",
         "fyyd",
-        "Podcast Hosters"
+        "Podcast Hosters",
+        "Google backup"
     ],
-
     "tracking": {
         "advertising_libraries": false,
         "third_party_tracking": false,

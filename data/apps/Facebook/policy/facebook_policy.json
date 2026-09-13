@@ -1,0 +1,52 @@
+{
+    "app": "Forecastie",
+    "policy_available": false,
+    "policy_status": "No standalone Forecastie privacy policy identified.",
+    "sources": [
+        {
+            "type": "app_metadata",
+            "source": "F-Droid",
+            "url": "https://f-droid.org/en/packages/cz.martykan.forecastie/",
+            "reliability": "primary"
+        },
+        {
+            "type": "source_code",
+            "source": "Forecastie GitHub repository",
+            "url": "https://github.com/martykan/forecastie",
+            "reliability": "primary"
+        },
+        {
+            "type": "third_party_policy",
+            "source": "OpenWeather Privacy Policy",
+            "url": "https://openweather.co.uk/privacy-policy",
+            "reliability": "primary",
+            "scope": "OpenWeather service; not a Forecastie privacy policy"
+        }
+    ],
+    "declared_practices": [
+        {
+            "data": "Location",
+            "category": "Location",
+            "purpose": "Weather location and weather retrieval",
+            "source_type": "app_metadata_and_source_code",
+            "evidence": "Forecastie requests approximate/precise foreground location and uses location for weather functionality.",
+            "source": "app_metadata/source_code"
+        },
+        {
+            "data": "Weather API",
+            "category": "Third Party Service",
+            "purpose": "Weather data retrieval",
+            "source_type": "source_code",
+            "evidence": "Forecastie gathers weather data from OpenWeatherMap via its public API.",
+            "source": "source_code"
+        }
+    ],
+    "declared_categories": [
+        "Location",
+        "Third Party Service"
+    ],
+    "third_party_services": [
+        "OpenWeatherMap"
+    ],
+    "policy_note": "OpenWeather's privacy policy states that its API does not collect/store API request parameters, IP address or user agent. Its website privacy practices are separate. Therefore OpenWeather policy evidence is not used to claim that Forecastie itself declares Network Information or Personal Information."
+}
