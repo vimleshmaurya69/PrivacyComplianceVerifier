@@ -3,7 +3,7 @@ import json
 import re
 
 from typing import Any, Dict, List
-from urllib.parse import parse_qsl
+from urllib.parse import parse_qsl, unquote, urlsplit
 
 from src.models.request import Request
 from src.utils.protobuf_scanner import ProtobufScanner
@@ -271,12 +271,6 @@ class SensitiveDataDetector:
 
         key = str(key)
 
-        # Field names should be short metadata keys. A malformed parser result
-        # or an enormous unstructured body fragment can otherwise make regex
-        # normalization disproportionately expensive.
-        if len(key) > 512:
-            return ""
-
         # Convert camelCase to snake_case.
         key = re.sub(
             r"([a-z0-9])([A-Z])",
@@ -319,39 +313,21 @@ class SensitiveDataDetector:
         self,
         value: Any
     ) -> List[str]:
-        """Find email addresses without scanning arbitrarily large bodies.
-
-        Structured JSON/form fields are analyzed separately, so this regex is
-        only a fallback for free-form text. Very large response bodies can be
-        minified JavaScript, HTML, telemetry, or other content where a full
-        regex scan is unnecessarily expensive. To keep analysis bounded, scan
-        the beginning and end of large bodies with a small overlap.
-        """
 
         if value is None:
             return []
 
-        text = str(value)
-        if not text:
-            return []
+        value = str(value)
 
-        pattern = re.compile(
+        pattern = (
             r"[A-Za-z0-9._%+-]+"
             r"@[A-Za-z0-9.-]+\.[A-Za-z]{2,}"
         )
 
-        # Free-form email detection is a fallback. Structured fields are
-        # already extracted independently, so bounding this scan prevents a
-        # single very large body from stalling the entire HAR analysis.
-        # Keep the free-form regex scan deliberately small. Structured JSON/form
-        # fields are analyzed independently, so scanning multi-megabyte bodies
-        # adds cost without materially improving field-based detection.
-        max_scan_chars = 250_000
-
-        if len(text) > max_scan_chars:
-            return []
-
-        return pattern.findall(text)
+        return re.findall(
+            pattern,
+            value
+        )
 
     def _is_phone_number(
         self,
@@ -424,170 +400,247 @@ class SensitiveDataDetector:
 
     # --------------------------------------------------
     # Key-based classification
+    # --------------------------------------------------
 
-    def _key_context(self, key: Any):
-        """Return normalized path components for contextual key matching."""
-        normalized = self._normalize_key(key)
-        return [part for part in re.split(r"[._]+", normalized) if part]
+    def _classify_key_value(
+        self,
+        key,
+        value
+    ):
 
-    def _classify_key_value(self, key, value):
-        """
-        Classify a structured field using its leaf key and surrounding
-        path context. Ambiguous fields such as `name` and `address` are
-        only classified as personal information when contextual evidence
-        is present.
-        """
-        raw_key = str(key)
-        if len(raw_key) > 512:
-            return None
+        normalized_key = self._normalize_key(
+            key
+        )
 
-        normalized_key = self._normalize_key(raw_key)
-        parts = [part for part in re.split(r"[._]+", normalized_key) if part]
-        leaf = parts[-1] if parts else normalized_key
+        # ------------------------------------------
+        # Email
+        # ------------------------------------------
 
-        email_keys = {"email", "email_address", "user_email", "useremail", "mail"}
-        if leaf in email_keys or normalized_key in email_keys or self._is_email(value):
+        email_keys = {
+            "email",
+            "email_address",
+            "user_email",
+            "useremail",
+            "mail",
+        }
+
+        if (
+            normalized_key in email_keys
+            or self._is_email(value)
+        ):
+
             return "Email"
 
+        # ------------------------------------------
+        # Phone
+        # ------------------------------------------
+
         phone_keys = {
-            "phone", "phone_number", "phonenumber", "mobile", "mobile_number",
-            "mobilenumber", "telephone", "telephone_number", "contact_number",
+            "phone",
+            "phone_number",
+            "phonenumber",
+            "mobile",
+            "mobile_number",
+            "mobilenumber",
+            "telephone",
+            "telephone_number",
+            "contact_number",
             "contactnumber",
         }
-        if leaf in phone_keys or normalized_key in phone_keys:
+
+        if normalized_key in phone_keys:
+
             if self._is_phone_number(value):
+
                 return "Phone"
 
-        name_keys = {
-            "name", "full_name", "fullname", "first_name", "firstname",
-            "last_name", "lastname", "given_name", "givenname", "family_name",
-            "familyname",
-        }
-        name_context = {
-            "user", "profile", "account", "person", "personal", "contact",
-            "identity", "owner", "member", "customer", "subscriber", "student",
-        }
-        if leaf in name_keys:
-            if leaf != "name" or any(part in name_context for part in parts[:-1]):
-                if value is not None and str(value).strip():
-                    return "Name"
+        # ------------------------------------------
+        # Location
+        # ------------------------------------------
 
-        dob_keys = {
-            "dob", "date_of_birth", "dateofbirth", "birth_date", "birthdate", "birthday",
+        latitude_keys = {
+            "lat",
+            "latitude",
         }
-        if leaf in dob_keys:
-            return "Date of Birth"
 
-        address_keys = {
-            "address", "street_address", "streetaddress", "postal_address",
-            "postaladdress", "home_address", "homeaddress", "mailing_address",
-            "mailingaddress",
+        longitude_keys = {
+            "lon",
+            "lng",
+            "longitude",
         }
-        address_context = {
-            "user", "profile", "account", "person", "personal", "contact",
-            "identity", "owner", "member", "customer", "subscriber", "student",
-            "shipping", "billing", "location",
-        }
-        if leaf in address_keys:
-            if leaf != "address" or any(part in address_context for part in parts[:-1]):
-                if value is not None and str(value).strip():
-                    return "Address"
 
-        if leaf in {"lat", "latitude"}:
+        if normalized_key in latitude_keys:
+
             return "Latitude"
-        if leaf in {"lon", "lng", "longitude"}:
+
+        if normalized_key in longitude_keys:
+
             return "Longitude"
 
-        if self._looks_like_api_key(key, value):
+        # ------------------------------------------
+        # API credentials
+        # ------------------------------------------
+
+        if self._looks_like_api_key(
+            key,
+            value
+        ):
+
             return "API Key"
 
-        csrf_keys = {"csrf", "csrf_token", "csrftoken", "xsrf_token", "xsrftoken"}
-        if leaf in csrf_keys or normalized_key in csrf_keys:
-            if value is not None and str(value).strip():
-                return "CSRF Token"
+        # ------------------------------------------
+        # Authentication tokens
+        # ------------------------------------------
 
         auth_keys = {
-            "authorization", "auth_token", "authtoken", "access_token", "accesstoken",
-            "refresh_token", "refreshtoken", "bearer_token", "bearertoken", "token", "token_v2",
+            "authorization",
+            "auth_token",
+            "authtoken",
+            "access_token",
+            "accesstoken",
+            "refresh_token",
+            "refreshtoken",
+            "bearer_token",
+            "bearertoken",
+            "token",
+            "token_v2",
+            "csrf_token",
         }
-        if leaf in auth_keys or normalized_key in auth_keys:
-            if value is not None and str(value).strip():
-                return "Authorization Token"
 
-        password_keys = {"password", "passwd", "passcode"}
-        if leaf in password_keys or normalized_key in password_keys:
-            if value is not None and str(value).strip():
-                return "Password"
+        if normalized_key in auth_keys:
+
+            return "Authorization Token"
+
+        # ------------------------------------------
+        # Device identifiers
+        # ------------------------------------------
 
         device_id_keys = {
-            "device_id", "deviceid", "android_id", "androidid", "advertising_id",
-            "advertisingid", "ad_id", "adid",
+            "device_id",
+            "deviceid",
+            "android_id",
+            "androidid",
+            "advertising_id",
+            "advertisingid",
+            "ad_id",
+            "adid",
         }
-        if leaf in device_id_keys or normalized_key in device_id_keys:
-            return "Device ID"
 
-        ip_keys = {"ip", "ip_address", "ipaddress", "client_ip", "clientip", "remote_ip", "remoteip"}
-        if leaf in ip_keys or normalized_key in ip_keys:
-            return "IP Address"
+        if normalized_key in device_id_keys:
+
+            return "Device ID"
 
         return None
 
-    # JavaScript/source-body filtering
+    # --------------------------------------------------
+    # URL / text signal helpers
     # --------------------------------------------------
 
-    def _looks_like_javascript_source(
-        self,
-        body: Any
-    ) -> bool:
+    def _iter_url_query_pairs(self, url: Any):
+        """Return query pairs directly from the URL.
+
+        The extractor currently exposes query parameters as a mapping, which
+        can collapse duplicate keys. Parsing the original URL here preserves
+        every occurrence for detection.
         """
-        Detect response bodies that are primarily JavaScript/source code.
+        if not url:
+            return []
 
-        This check must remain bounded because HAR response bodies can be very
-        large. Never run the regular expressions over an entire multi-megabyte
-        body. A bounded prefix is sufficient to identify the characteristic
-        JavaScript syntax that caused the original false positives.
-        """
-        if body is None:
+        try:
+            query = urlsplit(str(url)).query
+            return parse_qsl(query, keep_blank_values=True)
+        except Exception:
+            return []
+
+    def _get_url_path(self, url: Any) -> str:
+        if not url:
+            return ""
+        try:
+            return unquote(urlsplit(str(url)).path or "")
+        except Exception:
+            return ""
+
+    def _looks_like_base64(self, value: Any) -> bool:
+        if value is None:
             return False
-
-        text = str(body).strip()
-        if not text:
+        value = str(value).strip()
+        if len(value) < 16 or len(value) > 65536 or len(value) % 4 != 0:
             return False
+        return bool(re.fullmatch(r"[A-Za-z0-9+/]+={0,2}", value))
 
-        # Hard bound: regex-based source detection must never process an
-        # arbitrarily large network body. Keep the sample large enough to catch
-        # minified JavaScript while preventing pathological regex runtimes.
-        max_scan_chars = 64 * 1024
-        sample = text[:max_scan_chars]
+    def _decode_base64_candidates(self, value: Any) -> List[str]:
+        """Decode high-confidence base64 strings for a second detection pass."""
+        import base64
 
-        strong_patterns = [
-            r"\bfunction\s*\w*\s*\(",
-            r"\b(?:var|let|const)\s+[A-Za-z_$][\w$]*\s*[=;]",
-            r"\breturn\s+[^;{}]+[;}]",
-            r"\b(?:this|window|document|prototype)\s*\.\s*",
-            r"\b(?:\.prototype|\.call\(|\.apply\(|=>)",
-            r"\b(?:requestAccessToken|recaptchaToken|csrf_token)\b[^\n]{0,120}[;=(){}]",
-        ]
+        if not self._looks_like_base64(value):
+            return []
 
-        strong_hits = 0
-        for pattern in strong_patterns:
-            if re.search(pattern, sample):
-                strong_hits += 1
-                if strong_hits >= 2:
-                    return True
+        try:
+            decoded = base64.b64decode(str(value), validate=True)
+            if not decoded or len(decoded) > 1024 * 1024:
+                return []
+            text = decoded.decode("utf-8", errors="ignore").strip()
+            if not text:
+                return []
+            # Only feed plausible textual payloads back into the detector.
+            printable = sum(ch.isprintable() or ch.isspace() for ch in text)
+            if printable / max(len(text), 1) < 0.85:
+                return []
+            return [text]
+        except Exception:
+            return []
 
-        # Property-access fragments are especially characteristic of minified
-        # response JavaScript. Count them only within the bounded sample.
-        property_pattern = re.compile(
-            r"\b(?:this|[A-Za-z_$][\w$]*)\.[A-Za-z_$][\w$]*\b"
+    def _analyze_text_signals(self, value: Any, findings, source, key):
+        """Detect strong privacy artifacts independent of parameter naming."""
+        if value is None:
+            return
+
+        text = str(value)
+
+        for email in self._find_emails(text):
+            findings.append(self.create_finding(
+                "Email", source, key, email
+            ))
+
+        # Generic phone detection is intentionally conservative. It accepts
+        # international +country-code forms anywhere, and plain 10-15 digit
+        # values only when the key provides contact/phone context.
+        phone_context = bool(re.search(
+            r"(?:phone|mobile|telephone|tel|contact|msisdn|caller|recipient|number)",
+            self._normalize_key(key)
+        ))
+        international_candidates = re.findall(
+            r"\+\d[\d .()\-]{8,14}\d", text
         )
-        property_hits = sum(
-            1
-            for _ in property_pattern.finditer(sample)
-        )
+        plain_candidates = []
+        if phone_context:
+            plain_candidates = re.findall(r"(?<!\d)\d{10,15}(?!\d)", text)
+        elif source == "URL Path":
+            # Path segments frequently carry identifiers directly. Treat a
+            # standalone 10-15 digit path segment as a phone candidate; do
+            # not scan arbitrary path text for digit sequences.
+            plain_candidates = re.findall(r"(?<!\d)\d{10,15}(?!\d)", text)
 
-        return property_hits >= 4
+        for candidate in international_candidates + plain_candidates:
+            if self._is_phone_number(candidate):
+                findings.append(self.create_finding(
+                    "Phone", source, key, candidate
+                ))
 
+        for decoded in self._decode_base64_candidates(text):
+            for email in self._find_emails(decoded):
+                findings.append(self.create_finding(
+                    "Email", source, f"{key}.__base64__", email
+                ))
+            if re.search(r"(?:phone|mobile|telephone|tel|contact|msisdn)", self._normalize_key(decoded)):
+                digits = re.sub(r"[^\d+]", "", decoded)
+                if self._is_phone_number(digits):
+                    findings.append(self.create_finding(
+                        "Phone", source, f"{key}.__base64__", digits
+                    ))
+
+    # --------------------------------------------------
+    # Structured body extraction
     # --------------------------------------------------
 
     def _extract_json_pairs(
@@ -822,23 +875,6 @@ class SensitiveDataDetector:
             return
 
         # ------------------------------------------
-        # JavaScript response filtering
-        # ------------------------------------------
-        # Only apply this to response bodies. Request bodies may legitimately
-        # contain arbitrary text/form data, and valid JSON is parsed normally.
-        if source == "Response Body" and body_type != "grpc":
-            body_text = str(body).strip()
-            if body_text:
-                try:
-                    json.loads(body_text)
-                    parsed_as_json = True
-                except (json.JSONDecodeError, TypeError, ValueError):
-                    parsed_as_json = False
-
-                if not parsed_as_json and self._looks_like_javascript_source(body_text):
-                    return
-
-        # ------------------------------------------
         # gRPC / protobuf
         # ------------------------------------------
 
@@ -886,11 +922,52 @@ class SensitiveDataDetector:
                     )
                 )
 
+            # Scan scalar values independently of their field name. This
+            # catches artifacts embedded in generic fields and JSON strings.
+            signal_findings = []
+            self._analyze_text_signals(
+                value,
+                signal_findings,
+                source,
+                key
+            )
+            findings.extend(signal_findings)
+
+            # A form/query field may itself contain a JSON object. Parse it
+            # recursively so fields such as payload='{"email":"..."}' are
+            # not treated as opaque strings.
+            if isinstance(value, str):
+                try:
+                    nested = json.loads(value)
+                    if isinstance(nested, (dict, list)):
+                        nested_pairs = self._extract_json_pairs(
+                            nested, str(key)
+                        )
+                        for nested_key, nested_value in nested_pairs:
+                            nested_type = self._classify_key_value(
+                                nested_key, nested_value
+                            )
+                            if nested_type:
+                                findings.append(self.create_finding(
+                                    nested_type,
+                                    source,
+                                    nested_key,
+                                    nested_value,
+                                ))
+                            nested_signals = []
+                            self._analyze_text_signals(
+                                nested_value,
+                                nested_signals,
+                                source,
+                                nested_key
+                            )
+                            findings.extend(nested_signals)
+                except (json.JSONDecodeError, TypeError, ValueError):
+                    pass
+
         # ------------------------------------------
         # Free-form email detection
         # ------------------------------------------
-        # For response bodies, only small non-structured text reaches this
-        # fallback. Structured JSON/form fields above are always analyzed.
 
         emails = self._find_emails(
             body
@@ -955,18 +1032,38 @@ class SensitiveDataDetector:
                         finding_type,
                         source,
                         key,
-                        value,
-                        direction
+                        value
                     )
+                )
+
+            # --------------------------------------
+            # URL Path
+            # --------------------------------------
+
+            url_path = self._get_url_path(getattr(request, "url", ""))
+            if url_path:
+                self._analyze_text_signals(
+                    url_path,
+                    findings,
+                    "URL Path",
+                    "path"
                 )
 
             # --------------------------------------
             # Request Query Parameters
             # --------------------------------------
 
-            for key, value in (
-                request.query_params.items()
-            ):
+            # Parse the original URL as well as the extracted mapping. This
+            # preserves duplicate query keys and catches values lost by a
+            # dict-based representation.
+            query_pairs = list(self._iter_url_query_pairs(
+                getattr(request, "url", "")
+            ))
+            query_pairs.extend(
+                list(request.query_params.items())
+            )
+
+            for key, value in query_pairs:
 
                 finding_type = (
                     self._classify_key_value(
@@ -982,6 +1079,22 @@ class SensitiveDataDetector:
                         "Query Parameter",
                         key,
                         value,
+                        "outbound"
+                    )
+
+                query_signal_findings = []
+                self._analyze_text_signals(
+                    value,
+                    query_signal_findings,
+                    "Query Parameter",
+                    key
+                )
+                for finding in query_signal_findings:
+                    add_finding(
+                        finding.get("type"),
+                        finding.get("source"),
+                        finding.get("key"),
+                        finding.get("_raw_value"),
                         "outbound"
                     )
 
@@ -1004,6 +1117,33 @@ class SensitiveDataDetector:
                         "Header",
                         key,
                         value,
+                        "outbound"
+                    )
+
+                else:
+                    finding_type = self._classify_key_value(key, value)
+                    if finding_type:
+                        add_finding(
+                            finding_type,
+                            "Header",
+                            key,
+                            value,
+                            "outbound"
+                        )
+
+                header_signal_findings = []
+                self._analyze_text_signals(
+                    value,
+                    header_signal_findings,
+                    "Header",
+                    key
+                )
+                for finding in header_signal_findings:
+                    add_finding(
+                        finding.get("type"),
+                        finding.get("source"),
+                        finding.get("key"),
+                        finding.get("_raw_value"),
                         "outbound"
                     )
 
@@ -1042,6 +1182,33 @@ class SensitiveDataDetector:
                         "Cookie",
                         key,
                         value,
+                        "outbound"
+                    )
+
+                else:
+                    finding_type = self._classify_key_value(key, value)
+                    if finding_type:
+                        add_finding(
+                            finding_type,
+                            "Cookie",
+                            key,
+                            value,
+                            "outbound"
+                        )
+
+                cookie_signal_findings = []
+                self._analyze_text_signals(
+                    value,
+                    cookie_signal_findings,
+                    "Cookie",
+                    key
+                )
+                for finding in cookie_signal_findings:
+                    add_finding(
+                        finding.get("type"),
+                        finding.get("source"),
+                        finding.get("key"),
+                        finding.get("_raw_value"),
                         "outbound"
                     )
 
@@ -1100,6 +1267,33 @@ class SensitiveDataDetector:
                         "inbound"
                     )
 
+                else:
+                    finding_type = self._classify_key_value(key, value)
+                    if finding_type:
+                        add_finding(
+                            finding_type,
+                            "Response Header",
+                            key,
+                            value,
+                            "inbound"
+                        )
+
+                response_header_signal_findings = []
+                self._analyze_text_signals(
+                    value,
+                    response_header_signal_findings,
+                    "Response Header",
+                    key
+                )
+                for finding in response_header_signal_findings:
+                    add_finding(
+                        finding.get("type"),
+                        finding.get("source"),
+                        finding.get("key"),
+                        finding.get("_raw_value"),
+                        "inbound"
+                    )
+
             # --------------------------------------
             # Response Cookies
             # --------------------------------------
@@ -1124,6 +1318,33 @@ class SensitiveDataDetector:
                         "Response Cookie",
                         key,
                         value,
+                        "inbound"
+                    )
+
+                else:
+                    finding_type = self._classify_key_value(key, value)
+                    if finding_type:
+                        add_finding(
+                            finding_type,
+                            "Response Cookie",
+                            key,
+                            value,
+                            "inbound"
+                        )
+
+                response_cookie_signal_findings = []
+                self._analyze_text_signals(
+                    value,
+                    response_cookie_signal_findings,
+                    "Response Cookie",
+                    key
+                )
+                for finding in response_cookie_signal_findings:
+                    add_finding(
+                        finding.get("type"),
+                        finding.get("source"),
+                        finding.get("key"),
+                        finding.get("_raw_value"),
                         "inbound"
                     )
 

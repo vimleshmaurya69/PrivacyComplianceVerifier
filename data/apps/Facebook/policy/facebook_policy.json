@@ -1,52 +1,119 @@
 {
-    "app": "Forecastie",
-    "policy_available": false,
-    "policy_status": "No standalone Forecastie privacy policy identified.",
-    "sources": [
-        {
-            "type": "app_metadata",
-            "source": "F-Droid",
-            "url": "https://f-droid.org/en/packages/cz.martykan.forecastie/",
-            "reliability": "primary"
-        },
-        {
-            "type": "source_code",
-            "source": "Forecastie GitHub repository",
-            "url": "https://github.com/martykan/forecastie",
-            "reliability": "primary"
-        },
-        {
-            "type": "third_party_policy",
-            "source": "OpenWeather Privacy Policy",
-            "url": "https://openweather.co.uk/privacy-policy",
-            "reliability": "primary",
-            "scope": "OpenWeather service; not a Forecastie privacy policy"
-        }
+    "app": "Facebook",
+    "package": "com.facebook.katana",
+    "policy_available": true,
+    "source": "https://www.facebook.com/privacy/policy/",
+    "additional_source": "https://about.fb.com/news/2022/05/metas-updated-privacy-policy/",
+    "last_verified": "2026-09-11",
+    "policy_scope": [
+        "Facebook app",
+        "Facebook website / Meta Products"
+    ],
+    "declared_categories": [
+        "Personal Information",
+        "Contacts",
+        "Device Information",
+        "Device Identifier",
+        "Network Information",
+        "Location",
+        "Camera",
+        "Local Media",
+        "Media Access",
+        "Microphone",
+        "Authentication",
+        "Usage Data",
+        "Cookies",
+        "Financial Information"
     ],
     "declared_practices": [
         {
-            "data": "Location",
-            "category": "Location",
-            "purpose": "Weather location and weather retrieval",
-            "source_type": "app_metadata_and_source_code",
-            "evidence": "Forecastie requests approximate/precise foreground location and uses location for weather functionality.",
-            "source": "app_metadata/source_code"
+            "category": "Personal Information",
+            "data_type": "Account/profile information, content, messages and communications",
+            "purpose": "Account, communication and product functionality",
+            "source": "Meta Privacy Policy"
         },
         {
-            "data": "Weather API",
-            "category": "Third Party Service",
-            "purpose": "Weather data retrieval",
-            "source_type": "source_code",
-            "evidence": "Forecastie gathers weather data from OpenWeatherMap via its public API.",
-            "source": "source_code"
+            "category": "Contacts",
+            "data_type": "Friends, followers and other connections / contact information",
+            "purpose": "Connecting and communication",
+            "source": "Meta Privacy Policy"
+        },
+        {
+            "category": "Device Information",
+            "data_type": "Device characteristics, software, operating system and performance information",
+            "purpose": "Service operation, security and product improvement",
+            "source": "Meta Privacy Policy"
+        },
+        {
+            "category": "Device Identifier",
+            "data_type": "Device identifiers and device signals",
+            "purpose": "Security, recognition, personalization and service operation",
+            "source": "Meta Privacy Policy"
+        },
+        {
+            "category": "Network Information",
+            "data_type": "Network connection information and IP address",
+            "purpose": "Service operation, security, analytics and communication",
+            "source": "Meta Privacy Policy"
+        },
+        {
+            "category": "Location",
+            "data_type": "GPS/device settings and location-related information",
+            "purpose": "Product features, personalization, advertising and security",
+            "source": "Meta Privacy Policy"
+        },
+        {
+            "category": "Camera",
+            "data_type": "Camera-provided content",
+            "purpose": "Content creation and communication",
+            "source": "Meta Privacy Policy"
+        },
+        {
+            "category": "Local Media",
+            "data_type": "Camera roll / photos and videos",
+            "purpose": "Content creation, sharing and product features",
+            "source": "Meta Privacy Policy"
+        },
+        {
+            "category": "Media Access",
+            "data_type": "Photos, videos, audio and other media content",
+            "purpose": "Content creation and communication",
+            "source": "Meta Privacy Policy"
+        },
+        {
+            "category": "Microphone",
+            "data_type": "Voice-enabled features and audio",
+            "purpose": "Communication and content creation",
+            "source": "Meta Privacy Policy"
+        },
+        {
+            "category": "Authentication",
+            "data_type": "Account credentials / login and security information",
+            "purpose": "Account creation, access and security",
+            "source": "Meta Privacy Policy"
+        },
+        {
+            "category": "Usage Data",
+            "data_type": "Actions, interactions, content viewed, time/frequency/duration and feature use",
+            "purpose": "Service provision, personalization, analytics and advertising",
+            "source": "Meta Privacy Policy"
+        },
+        {
+            "category": "Cookies",
+            "data_type": "Cookies and similar technologies",
+            "purpose": "Service operation, personalization, analytics and advertising",
+            "source": "Meta Privacy Policy"
+        },
+        {
+            "category": "Financial Information",
+            "data_type": "Purchases and transaction information, including limited payment information",
+            "purpose": "Transactions and product services",
+            "source": "Meta Privacy Policy"
         }
     ],
-    "declared_categories": [
-        "Location",
-        "Third Party Service"
-    ],
-    "third_party_services": [
-        "OpenWeatherMap"
-    ],
-    "policy_note": "OpenWeather's privacy policy states that its API does not collect/store API request parameters, IP address or user agent. Its website privacy practices are separate. Therefore OpenWeather policy evidence is not used to claim that Forecastie itself declares Network Information or Personal Information."
+    "tracking": {
+        "advertising_libraries": false,
+        "third_party_tracking": true,
+        "analytics": true
+    }
 }
