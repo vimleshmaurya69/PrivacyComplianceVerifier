@@ -9,6 +9,49 @@ from src.models.request import Request
 from src.utils.protobuf_scanner import ProtobufScanner
 
 
+class Requests:
+    """Concrete request container used to manage the Request objects under analysis."""
+
+    def __init__(self, requests: List[Request] | None = None):
+        self._requests: List[Request] = list(requests or [])
+
+    def __iter__(self):
+        return iter(self._requests)
+
+    def __len__(self):
+        return len(self._requests)
+
+    def __getitem__(self, index):
+        return self._requests[index]
+
+    def __contains__(self, item):
+        return item in self._requests
+
+    def append(self, request: Request) -> None:
+        self._requests.append(request)
+
+    def extend(self, requests) -> None:
+        self._requests.extend(list(requests or []))
+
+    def clear(self) -> None:
+        self._requests.clear()
+
+    def get(self, index: int, default=None):
+        try:
+            return self._requests[index]
+        except IndexError:
+            return default
+
+    def find_by_url(self, url: str):
+        for request in self._requests:
+            if getattr(request, "url", None) == url:
+                return request
+        return None
+
+    def to_list(self) -> List[Request]:
+        return list(self._requests)
+
+
 class SensitiveDataDetector:
 
     def __init__(self, requests: List[Request]):
