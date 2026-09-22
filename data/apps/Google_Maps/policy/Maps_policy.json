@@ -1,0 +1,92 @@
+{
+  "app": "Google Maps Web",
+  "package": "web.google.maps",
+  "policy_available": true,
+  "source": "https://policies.google.com/privacy",
+  "website_source": "https://www.google.com/maps",
+  "last_verified": "2026-09-17",
+  "policy_scope": [
+    "Google Maps web services",
+    "Google services accessed through Google Maps",
+    "Google Maps website usage in a web browser"
+  ],
+  "declared_categories": [
+    "Personal Information",
+    "Device Information",
+    "Device Identifier",
+    "Network Information",
+    "Location",
+    "Authentication",
+    "Search",
+    "Usage Data",
+    "Cookies",
+    "Media Access"
+  ],
+  "declared_practices": [
+    {
+      "category": "Personal Information",
+      "data_type": "Google Account information and information provided by the user",
+      "purpose": "Account and service provision",
+      "source": "privacy_policy"
+    },
+    {
+      "category": "Device Information",
+      "data_type": "Browser type and settings, device type and settings, operating system, application or browser version and related device information",
+      "purpose": "Service operation, security and troubleshooting",
+      "source": "privacy_policy"
+    },
+    {
+      "category": "Device Identifier",
+      "data_type": "Unique identifiers and online identifiers",
+      "purpose": "Service operation, authentication, security and personalization",
+      "source": "privacy_policy"
+    },
+    {
+      "category": "Network Information",
+      "data_type": "IP address, network connection information and request-related information",
+      "purpose": "Service delivery, security and location estimation",
+      "source": "privacy_policy"
+    },
+    {
+      "category": "Location",
+      "data_type": "Location information derived from GPS, IP address, device sensors and nearby Wi-Fi or cellular signals",
+      "purpose": "Maps display, directions, navigation, nearby search results and location-based features",
+      "source": "privacy_policy"
+    },
+    {
+      "category": "Search",
+      "data_type": "Search terms, map searches and places viewed or searched in Google Maps",
+      "purpose": "Search results, service operation, personalization and activity history",
+      "source": "privacy_policy"
+    },
+    {
+      "category": "Usage Data",
+      "data_type": "Activity and interactions with Google services, including Maps searches, viewed places and service interactions",
+      "purpose": "Service operation, personalization, analytics and security",
+      "source": "privacy_policy"
+    },
+    {
+      "category": "Cookies",
+      "data_type": "Cookies, local storage and similar online identifiers",
+      "purpose": "Authentication, service operation, preferences and personalization",
+      "source": "privacy_policy"
+    },
+    {
+      "category": "Authentication",
+      "data_type": "Google Account authentication information and authentication-related identifiers",
+      "purpose": "Account access and security",
+      "source": "privacy_policy"
+    },
+    {
+      "category": "Media Access",
+      "data_type": "Images, files and other media submitted or used through Google services",
+      "purpose": "User-provided content and Maps features",
+      "source": "privacy_policy"
+    }
+  ],
+  "tracking": {
+    "advertising_libraries": true,
+    "third_party_tracking": true,
+    "analytics": true
+  }
+}

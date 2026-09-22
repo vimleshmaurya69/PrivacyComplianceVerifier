@@ -1,0 +1,27 @@
+{
+  "app_name": "Snapdeal",
+  "policy_available": true,
+
+  "policy_sources": [
+    "https://www.snapdeal.com/page/privacy-policy"
+  ],
+
+  "declared_categories": [
+    "Personal Information",
+    "Authentication",
+    "Payment Information",
+    "Search",
+    "Usage Data",
+    "Location",
+    "Device Information",
+    "Device Identifier",
+    "Network Information",
+    "Media Access",
+    "Cookies"
+  ],
+
+  "tracking": {
+    "advertising_libraries": true,
+    "third_party_tracking": true
+  }
+}

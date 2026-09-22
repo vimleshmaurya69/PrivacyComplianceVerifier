@@ -1,0 +1,30 @@
+{
+  "app_name": "Microsoft Teams",
+  "policy_sources": [
+    {
+      "title": "Microsoft Privacy Statement",
+      "url": "https://www.microsoft.com/en-us/privacy/privacystatement"
+    },
+    {
+      "title": "Data collection summary for Teams",
+      "url": "https://www.microsoft.com/en-us/privacy/data-collection-teams"
+    }
+  ],
+  "declared_categories": [
+    "Authentication",
+    "Contacts",
+    "Device Identifier",
+    "Device Information",
+    "Location",
+    "Network Information",
+    "Personal Information",
+    "Search",
+    "Usage Data",
+    "Media Access",
+    "Cookies"
+  ],
+  "tracking": {
+    "advertising_libraries": false,
+    "third_party_tracking": false
+  }
+}

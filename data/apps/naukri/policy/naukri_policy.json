@@ -1,0 +1,123 @@
+{
+    "app_name": "Naukri",
+    "policy_available": true,
+    "source": "https://www.naukri.com/privacypolicy",
+    "last_verified": "2026-09-22",
+
+    "declared_practices": [
+        {
+            "category": "Personal Information",
+            "data_type": "Name, email address, phone number and other contact information",
+            "purpose": "Jobseeker account, profile and recruitment communication",
+            "recipient": "Naukri / employers and recruiters where applicable",
+            "source": "Naukri Privacy Policy / Jobseeker privacy documentation"
+        },
+        {
+            "category": "Personal Information",
+            "data_type": "Resume, educational qualifications, work experience, skills and professional profile information",
+            "purpose": "Job search, profile creation, job matching and recruitment",
+            "recipient": "Naukri / employers and recruiters where applicable",
+            "source": "Naukri Jobseeker documentation"
+        },
+        {
+            "category": "Authentication",
+            "data_type": "Account credentials, login and authentication information",
+            "purpose": "Account access and security",
+            "recipient": "Naukri",
+            "source": "Naukri privacy documentation"
+        },
+        {
+            "category": "Location",
+            "data_type": "Location and location-related job preferences",
+            "purpose": "Job search, job recommendations and personalization",
+            "recipient": "Naukri",
+            "source": "Naukri jobseeker services"
+        },
+        {
+            "category": "Search",
+            "data_type": "Job searches, search queries and job preferences",
+            "purpose": "Job search, recommendations and personalization",
+            "recipient": "Naukri",
+            "source": "Naukri jobseeker services"
+        },
+        {
+            "category": "Usage Data",
+            "data_type": "App usage, interactions, pages viewed and service activity",
+            "purpose": "Service operation, analytics, personalization and improvement",
+            "recipient": "Naukri / service providers",
+            "source": "Naukri privacy documentation"
+        },
+        {
+            "category": "Device Information",
+            "data_type": "Device, operating system, application and technical information",
+            "purpose": "Service operation, security, analytics and troubleshooting",
+            "recipient": "Naukri / service providers",
+            "source": "Naukri privacy documentation"
+        },
+        {
+            "category": "Device Identifier",
+            "data_type": "Device identifiers and advertising identifiers",
+            "purpose": "Analytics, attribution, security and advertising-related measurement",
+            "recipient": "Naukri / analytics and advertising providers",
+            "source": "Naukri app privacy disclosures"
+        },
+        {
+            "category": "Network Information",
+            "data_type": "IP address and network-related information",
+            "purpose": "Service operation, security, analytics and fraud prevention",
+            "recipient": "Naukri / service providers",
+            "source": "Naukri privacy documentation"
+        },
+        {
+            "category": "Cookies",
+            "data_type": "Cookies and similar tracking technologies",
+            "purpose": "Authentication, preferences, analytics and personalization",
+            "recipient": "Naukri / analytics and advertising providers",
+            "source": "Naukri privacy documentation"
+        },
+        {
+            "category": "Media Access",
+            "data_type": "Resume and uploaded profile documents",
+            "purpose": "Profile creation and job applications",
+            "recipient": "Naukri / employers and recruiters where applicable",
+            "source": "Naukri jobseeker services"
+        },
+        {
+            "category": "Payment Information",
+            "data_type": "Payment or transaction information",
+            "purpose": "Paid services and transactions where applicable",
+            "recipient": "Naukri / payment service providers",
+            "source": "Naukri app privacy disclosure"
+        }
+    ],
+
+    "declared_categories": [
+        "Personal Information",
+        "Authentication",
+        "Location",
+        "Search",
+        "Usage Data",
+        "Device Information",
+        "Device Identifier",
+        "Network Information",
+        "Cookies",
+        "Media Access",
+        "Payment Information"
+    ],
+
+    "third_party_services": [
+        "Google",
+        "AppsFlyer",
+        "Facebook",
+        "Microsoft Clarity",
+        "Inspectlet",
+        "Firebase",
+        "Google Analytics / measurement services"
+    ],
+
+    "tracking": {
+        "advertising_libraries": true,
+        "third_party_tracking": true,
+        "analytics": true
+    }
+}

@@ -1,0 +1,103 @@
+{
+    "app_name": "Duolingo",
+    "policy_available": true,
+    "source": "https://www.duolingo.com/privacy",
+    "last_verified": "2026-09-22",
+    "declared_practices": [
+        {
+            "category": "Personal Information",
+            "data_type": "Name, email address, username and account information",
+            "purpose": "Account creation, authentication and service delivery",
+            "recipient": "Duolingo and applicable service providers",
+            "source": "Duolingo Privacy Policy"
+        },
+        {
+            "category": "Authentication",
+            "data_type": "Login credentials, authentication information and account identifiers",
+            "purpose": "Account access and security",
+            "recipient": "Duolingo",
+            "source": "Duolingo Privacy Policy"
+        },
+        {
+            "category": "Usage Data",
+            "data_type": "Learning activity, lessons, exercises, interactions, progress and other service usage",
+            "purpose": "Provide, personalize, analyze and improve Duolingo services",
+            "recipient": "Duolingo and applicable service providers",
+            "source": "Duolingo Privacy Policy and Duolingo data/engineering disclosures"
+        },
+        {
+            "category": "Device Information",
+            "data_type": "Device, operating system, application version and technical information",
+            "purpose": "Service operation, diagnostics, analytics and security",
+            "recipient": "Duolingo and service providers",
+            "source": "Duolingo Privacy Policy"
+        },
+        {
+            "category": "Device Identifier",
+            "data_type": "Device identifiers and advertising identifiers",
+            "purpose": "Analytics, attribution, advertising and service operation",
+            "recipient": "Duolingo and advertising/analytics partners",
+            "source": "Duolingo Privacy Policy"
+        },
+        {
+            "category": "Network Information",
+            "data_type": "IP address and network-related information",
+            "purpose": "Service operation, security, analytics and fraud prevention",
+            "recipient": "Duolingo and service providers",
+            "source": "Duolingo Privacy Policy"
+        },
+        {
+            "category": "Location",
+            "data_type": "General location information derived from device or network information where applicable",
+            "purpose": "Service operation, personalization, analytics and advertising",
+            "recipient": "Duolingo and applicable service providers",
+            "source": "Duolingo Privacy Policy"
+        },
+        {
+            "category": "Search",
+            "data_type": "Course, language and learning-related searches or selections",
+            "purpose": "Provide requested learning content and personalize the service",
+            "recipient": "Duolingo",
+            "source": "Duolingo service functionality"
+        },
+        {
+            "category": "Cookies",
+            "data_type": "Cookies and similar tracking technologies",
+            "purpose": "Authentication, preferences, analytics and advertising",
+            "recipient": "Duolingo and applicable third-party providers",
+            "source": "Duolingo Privacy Policy"
+        },
+        {
+            "category": "Media Access",
+            "data_type": "Audio, microphone or other media-related information where used by learning features",
+            "purpose": "Language-learning exercises and service functionality",
+            "recipient": "Duolingo",
+            "source": "Duolingo Privacy Policy"
+        }
+    ],
+    "declared_categories": [
+        "Personal Information",
+        "Authentication",
+        "Usage Data",
+        "Device Information",
+        "Device Identifier",
+        "Network Information",
+        "Location",
+        "Search",
+        "Cookies",
+        "Media Access"
+    ],
+    "third_party_services": [
+        "Google",
+        "Google Ads",
+        "Adjust",
+        "Facebook",
+        "Firebase",
+        "Amazon Web Services / CloudFront"
+    ],
+    "tracking": {
+        "advertising_libraries": true,
+        "third_party_tracking": true,
+        "analytics": true
+    }
+}

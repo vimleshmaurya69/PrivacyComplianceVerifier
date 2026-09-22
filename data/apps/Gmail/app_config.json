@@ -1,0 +1,28 @@
+{
+  "app_name": "Gmail",
+  "package_name": "com.google.android.gm",
+  "application_services": [
+    "inbox.google.com",
+    "mail.google.com",
+    "mobile-webview.gmail.com",
+    "mail-attachment.googleusercontent.com",
+    "ci3.googleusercontent.com",
+    "lh3.googleusercontent.com",
+    "lh4.googleusercontent.com",
+    "accounts.google.com",
+    "taskassist-pa.clients6.google.com",
+    "taskassist-pa.googleapis.com",
+    "appsgenaiserver-pa.googleapis.com",
+    "appsgrowthpromo-pa.googleapis.com",
+    "subscriptionsfirstparty-pa.googleapis.com",
+    "drive.google.com"
+  ],
+  "third_party_services": [
+    "googleapis.com",
+    "google.com",
+    "gstatic.com",
+    "googleusercontent.com"
+  ],
+  "har_file": "har/gmail.har",
+  "policy_file": "policy/gmail_policy.json"
+}

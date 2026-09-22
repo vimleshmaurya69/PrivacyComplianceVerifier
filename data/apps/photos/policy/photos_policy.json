@@ -1,0 +1,108 @@
+{
+    "app_name": "Google Photos",
+    "policy_available": true,
+    "source": "https://policies.google.com/privacy",
+    "last_verified": "2026-09-22",
+    "declared_practices": [
+        {
+            "category": "Personal Information",
+            "data_type": "Google Account information, name, email address and account identifiers",
+            "purpose": "Account management, authentication, synchronization and service delivery",
+            "recipient": "Google",
+            "source": "Google Privacy Policy"
+        },
+        {
+            "category": "Authentication",
+            "data_type": "Authentication information, account identifiers and session information",
+            "purpose": "Account access, synchronization and security",
+            "recipient": "Google",
+            "source": "Google Privacy Policy"
+        },
+        {
+            "category": "Media Access",
+            "data_type": "Photos, videos and other media uploaded, backed up or stored in Google Photos",
+            "purpose": "Backup, storage, organization, search, editing and other Google Photos functionality",
+            "recipient": "Google",
+            "source": "Google Photos Help and Google Privacy Policy"
+        },
+        {
+            "category": "Usage Data",
+            "data_type": "Interactions, searches, feature usage, activity and diagnostic information",
+            "purpose": "Provide, maintain, improve and secure Google Photos",
+            "recipient": "Google",
+            "source": "Google Privacy Policy"
+        },
+        {
+            "category": "Device Information",
+            "data_type": "Device model, operating system, application information and technical information",
+            "purpose": "Application operation, diagnostics, security and service improvement",
+            "recipient": "Google",
+            "source": "Google Privacy Policy"
+        },
+        {
+            "category": "Device Identifier",
+            "data_type": "Device and application identifiers",
+            "purpose": "Service operation, security, analytics and account/device management",
+            "recipient": "Google",
+            "source": "Google Privacy Policy"
+        },
+        {
+            "category": "Network Information",
+            "data_type": "IP address and network-related information",
+            "purpose": "Service operation, security, abuse prevention and diagnostics",
+            "recipient": "Google",
+            "source": "Google Privacy Policy"
+        },
+        {
+            "category": "Location",
+            "data_type": "Location information associated with photos or inferred from device/network information",
+            "purpose": "Organize, search and provide location-related photo features",
+            "recipient": "Google",
+            "source": "Google Photos and Google Privacy Policy"
+        },
+        {
+            "category": "Search",
+            "data_type": "Photo searches, search queries and interactions with search features",
+            "purpose": "Find and organize photos and videos",
+            "recipient": "Google",
+            "source": "Google Photos functionality and Google Privacy Policy"
+        },
+        {
+            "category": "Contacts",
+            "data_type": "People/contact information associated with sharing and Google account features",
+            "purpose": "Sharing, collaboration and people-related functionality",
+            "recipient": "Google",
+            "source": "Google Privacy Policy"
+        },
+        {
+            "category": "Cookies",
+            "data_type": "Cookies and similar technologies",
+            "purpose": "Authentication, preferences, security, analytics and service functionality",
+            "recipient": "Google",
+            "source": "Google Privacy Policy"
+        }
+    ],
+    "declared_categories": [
+        "Personal Information",
+        "Authentication",
+        "Media Access",
+        "Usage Data",
+        "Device Information",
+        "Device Identifier",
+        "Network Information",
+        "Location",
+        "Search",
+        "Contacts",
+        "Cookies"
+    ],
+    "third_party_services": [
+        "Google Play services",
+        "Firebase",
+        "YouTube"
+    ],
+    "tracking": {
+        "advertising_libraries": false,
+        "third_party_tracking": false,
+        "analytics": true
+    }
+}

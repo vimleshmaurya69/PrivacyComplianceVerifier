@@ -1,6 +1,9 @@
+import base64
+import gzip
 import hashlib
 import json
 import re
+import zlib
 
 from typing import Any, Dict, List
 from urllib.parse import parse_qsl, unquote, urlsplit
@@ -86,14 +89,7 @@ class SensitiveDataDetector:
     # Create finding
     # --------------------------------------------------
 
-    def create_finding(
-        self,
-        finding_type,
-        source,
-        key,
-        value,
-        direction=None
-    ):
+    def create_finding(self, finding_type, source, key, value, direction=None):
 
         return {
             "type": finding_type,
@@ -114,15 +110,10 @@ class SensitiveDataDetector:
         the raw sensitive value.
         """
 
-        normalized_value = (
-            "" if value is None else str(value)
-        )
+        normalized_value = "" if value is None else str(value)
 
         return hashlib.sha256(
-            normalized_value.encode(
-                "utf-8",
-                errors="replace"
-            )
+            normalized_value.encode("utf-8", errors="replace")
         ).hexdigest()
 
     # --------------------------------------------------
@@ -170,27 +161,14 @@ class SensitiveDataDetector:
         if key not in self._unique_findings:
 
             self._unique_findings[key] = {
-                "type": finding.get(
-                    "type",
-                    ""
-                ),
-
-                "value_redacted": finding.get(
-                    "value_redacted"
-                ),
-
+                "type": finding.get("type", ""),
+                "value_redacted": finding.get("value_redacted"),
                 "occurrences": 0,
-
                 "request_indices": set(),
-
                 "domains": set(),
-
                 "traffic_types": set(),
-
                 "sources": set(),
-
                 "directions": set(),
-
                 "keys": set(),
             }
 
@@ -198,110 +176,63 @@ class SensitiveDataDetector:
 
         aggregate["occurrences"] += 1
 
-        aggregate["request_indices"].add(
-            request_index
-        )
+        aggregate["request_indices"].add(request_index)
 
         if request.domain:
 
-            aggregate["domains"].add(
-                request.domain
-            )
+            aggregate["domains"].add(request.domain)
 
         if request.traffic_type:
 
-            aggregate["traffic_types"].add(
-                request.traffic_type
-            )
+            aggregate["traffic_types"].add(request.traffic_type)
 
         # Preserve every location where this artifact
         # was observed.
         if finding.get("source"):
 
-            aggregate["sources"].add(
-                finding.get("source")
-            )
+            aggregate["sources"].add(finding.get("source"))
 
         if finding.get("direction"):
 
-            aggregate["directions"].add(
-                finding.get("direction")
-            )
+            aggregate["directions"].add(finding.get("direction"))
 
         if finding.get("key"):
 
-            aggregate["keys"].add(
-                str(finding.get("key"))
-            )
+            aggregate["keys"].add(str(finding.get("key")))
 
     def get_unique_findings(self) -> List[dict]:
 
         unique_findings = []
 
-        for aggregate in (
-            self._unique_findings.values()
-        ):
+        for aggregate in self._unique_findings.values():
 
-            unique_findings.append({
-
-                "type": aggregate["type"],
-
-                "value_redacted":
-                    aggregate["value_redacted"],
-
-                "occurrences":
-                    aggregate["occurrences"],
-
-                "request_count":
-                    len(
-                        aggregate[
-                            "request_indices"
-                        ]
-                    ),
-
-                "domains":
-                    sorted(
-                        aggregate["domains"]
-                    ),
-
-                "traffic_types":
-                    sorted(
-                        aggregate["traffic_types"]
-                    ),
-
-                "sources":
-                    sorted(
-                        aggregate["sources"]
-                    ),
-
-                "directions":
-                    sorted(
-                        aggregate["directions"]
-                    ),
-
-                "keys":
-                    sorted(
-                        aggregate["keys"]
-                    ),
-            })
+            unique_findings.append(
+                {
+                    "type": aggregate["type"],
+                    "value_redacted": aggregate["value_redacted"],
+                    "occurrences": aggregate["occurrences"],
+                    "request_count": len(aggregate["request_indices"]),
+                    "domains": sorted(aggregate["domains"]),
+                    "traffic_types": sorted(aggregate["traffic_types"]),
+                    "sources": sorted(aggregate["sources"]),
+                    "directions": sorted(aggregate["directions"]),
+                    "keys": sorted(aggregate["keys"]),
+                }
+            )
 
         return sorted(
             unique_findings,
             key=lambda item: (
                 item["type"],
                 item["value_redacted"] or "",
-            )
+            ),
         )
 
     # --------------------------------------------------
     # Generic helpers
     # --------------------------------------------------
 
-    def _normalize_key(
-        self,
-        key: Any
-    ) -> str:
-
+    def _normalize_key(self, key: Any) -> str:
         """
         Normalize parameter names so variations such as:
 
@@ -315,67 +246,36 @@ class SensitiveDataDetector:
         key = str(key)
 
         # Convert camelCase to snake_case.
-        key = re.sub(
-            r"([a-z0-9])([A-Z])",
-            r"\1_\2",
-            key
-        )
+        key = re.sub(r"([a-z0-9])([A-Z])", r"\1_\2", key)
 
         # Replace separators with underscores.
-        key = re.sub(
-            r"[^a-zA-Z0-9]+",
-            "_",
-            key
-        )
+        key = re.sub(r"[^a-zA-Z0-9]+", "_", key)
 
         return key.lower().strip("_")
 
-    def _is_email(
-        self,
-        value: Any
-    ) -> bool:
+    def _is_email(self, value: Any) -> bool:
 
         if value is None:
             return False
 
         value = str(value).strip()
 
-        pattern = (
-            r"^[A-Za-z0-9._%+-]+"
-            r"@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$"
-        )
+        pattern = r"^[A-Za-z0-9._%+-]+" r"@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$"
 
-        return bool(
-            re.fullmatch(
-                pattern,
-                value
-            )
-        )
+        return bool(re.fullmatch(pattern, value))
 
-    def _find_emails(
-        self,
-        value: Any
-    ) -> List[str]:
+    def _find_emails(self, value: Any) -> List[str]:
 
         if value is None:
             return []
 
         value = str(value)
 
-        pattern = (
-            r"[A-Za-z0-9._%+-]+"
-            r"@[A-Za-z0-9.-]+\.[A-Za-z]{2,}"
-        )
+        pattern = r"[A-Za-z0-9._%+-]+" r"@[A-Za-z0-9.-]+\.[A-Za-z]{2,}"
 
-        return re.findall(
-            pattern,
-            value
-        )
+        return re.findall(pattern, value)
 
-    def _is_phone_number(
-        self,
-        value: Any
-    ) -> bool:
+    def _is_phone_number(self, value: Any) -> bool:
 
         if value is None:
             return False
@@ -383,34 +283,21 @@ class SensitiveDataDetector:
         value = str(value).strip()
 
         # Remove common phone-number formatting.
-        digits = re.sub(
-            r"[^\d]",
-            "",
-            value
-        )
+        digits = re.sub(r"[^\d]", "", value)
 
         # Plausible international phone range.
         if len(digits) < 10 or len(digits) > 15:
             return False
 
         # Reject values containing alphabetic characters.
-        if re.search(
-            r"[A-Za-z]",
-            value
-        ):
+        if re.search(r"[A-Za-z]", value):
             return False
 
         return True
 
-    def _looks_like_api_key(
-        self,
-        key: str,
-        value: Any
-    ) -> bool:
+    def _looks_like_api_key(self, key: str, value: Any) -> bool:
 
-        normalized_key = self._normalize_key(
-            key
-        )
+        normalized_key = self._normalize_key(key)
 
         api_key_names = {
             "api_key",
@@ -445,132 +332,72 @@ class SensitiveDataDetector:
     # Key-based classification
     # --------------------------------------------------
 
-    def _classify_key_value(
-        self,
-        key,
-        value
-    ):
+    def _classify_key_value(self, key, value):
 
-        normalized_key = self._normalize_key(
-            key
-        )
+        normalized_key = self._normalize_key(key)
 
-        # ------------------------------------------
         # Email
-        # ------------------------------------------
-
         email_keys = {
-            "email",
-            "email_address",
-            "user_email",
-            "useremail",
-            "mail",
+            "email", "email_address", "user_email", "useremail", "mail",
         }
-
-        if (
-            normalized_key in email_keys
-            or self._is_email(value)
-        ):
-
+        if normalized_key in email_keys or self._is_email(value):
             return "Email"
 
-        # ------------------------------------------
-        # Phone
-        # ------------------------------------------
-
+        # Phone/contact fields.  Plain numeric values require explicit field
+        # context; international + numbers are handled by text scanning.
         phone_keys = {
-            "phone",
-            "phone_number",
-            "phonenumber",
-            "mobile",
-            "mobile_number",
-            "mobilenumber",
-            "telephone",
-            "telephone_number",
-            "contact_number",
-            "contactnumber",
+            "phone", "phone_number", "phonenumber", "mobile",
+            "mobile_number", "mobilenumber", "telephone",
+            "telephone_number", "contact_number", "contactnumber",
+            "contact_point", "contactpoint", "msisdn", "caller",
+            "caller_number", "recipient", "recipient_number",
         }
+        if normalized_key in phone_keys and self._is_phone_number(value):
+            return "Phone"
 
-        if normalized_key in phone_keys:
+        # Facebook/other platform user identifiers. These are identifiers of
+        # an account/person, not phone numbers and should not be conflated.
+        user_id_keys = {
+            "user_id", "userid", "user_identifier", "useridentifier",
+            "user", "c_user", "i_user", "account_id", "accountid",
+        }
+        if normalized_key in user_id_keys:
+            text = str(value).strip() if value is not None else ""
+            if text and len(text) <= 128:
+                return "User ID"
 
-            if self._is_phone_number(value):
-
-                return "Phone"
-
-        # ------------------------------------------
         # Location
-        # ------------------------------------------
-
-        latitude_keys = {
-            "lat",
-            "latitude",
-        }
-
-        longitude_keys = {
-            "lon",
-            "lng",
-            "longitude",
-        }
-
-        if normalized_key in latitude_keys:
-
+        if normalized_key in {"lat", "latitude"}:
             return "Latitude"
-
-        if normalized_key in longitude_keys:
-
+        if normalized_key in {"lon", "lng", "longitude"}:
             return "Longitude"
 
-        # ------------------------------------------
-        # API credentials
-        # ------------------------------------------
-
-        if self._looks_like_api_key(
-            key,
-            value
-        ):
-
+        if self._looks_like_api_key(key, value):
             return "API Key"
 
-        # ------------------------------------------
-        # Authentication tokens
-        # ------------------------------------------
-
+        # Authentication tokens. Keep Authorization Token taxonomy intact.
         auth_keys = {
-            "authorization",
-            "auth_token",
-            "authtoken",
-            "access_token",
-            "accesstoken",
-            "refresh_token",
-            "refreshtoken",
-            "bearer_token",
-            "bearertoken",
-            "token",
-            "token_v2",
-            "csrf_token",
+            "authorization", "auth_token", "authtoken", "access_token",
+            "accesstoken", "refresh_token", "refreshtoken",
+            "bearer_token", "bearertoken", "token", "token_v2",
         }
-
         if normalized_key in auth_keys:
-
             return "Authorization Token"
 
-        # ------------------------------------------
-        # Device identifiers
-        # ------------------------------------------
-
-        device_id_keys = {
-            "device_id",
-            "deviceid",
-            "android_id",
-            "androidid",
-            "advertising_id",
-            "advertisingid",
-            "ad_id",
-            "adid",
+        # CSRF/security tokens are distinct from authentication credentials.
+        csrf_keys = {
+            "csrf_token", "csrftoken", "csrf", "fb_dtsg", "dtsg",
+            "xsrf_token", "xsrftoken", "xsrf",
         }
+        if normalized_key in csrf_keys:
+            return "CSRF Token"
 
+        # Device identifiers
+        device_id_keys = {
+            "device_id", "deviceid", "android_id", "androidid",
+            "advertising_id", "advertisingid", "ad_id", "adid",
+        }
         if normalized_key in device_id_keys:
-
             return "Device ID"
 
         return None
@@ -580,18 +407,11 @@ class SensitiveDataDetector:
     # --------------------------------------------------
 
     def _iter_url_query_pairs(self, url: Any):
-        """Return query pairs directly from the URL.
-
-        The extractor currently exposes query parameters as a mapping, which
-        can collapse duplicate keys. Parsing the original URL here preserves
-        every occurrence for detection.
-        """
+        """Return every query occurrence, preserving duplicate keys."""
         if not url:
             return []
-
         try:
-            query = urlsplit(str(url)).query
-            return parse_qsl(query, keep_blank_values=True)
+            return parse_qsl(urlsplit(str(url)).query, keep_blank_values=True)
         except Exception:
             return []
 
@@ -612,226 +432,289 @@ class SensitiveDataDetector:
         return bool(re.fullmatch(r"[A-Za-z0-9+/]+={0,2}", value))
 
     def _decode_base64_candidates(self, value: Any) -> List[str]:
-        """Decode high-confidence base64 strings for a second detection pass."""
-        import base64
-
         if not self._looks_like_base64(value):
             return []
+        raw = str(value).strip()
+        candidates = [raw]
+        # URL-safe base64 is common in query/form payloads.
+        if "-" in raw or "_" in raw:
+            candidates.append(raw.replace("-", "+").replace("_", "/"))
+        results = []
+        seen = set()
+        for candidate in candidates:
+            try:
+                decoded = base64.b64decode(candidate, validate=True)
+                if not decoded or len(decoded) > 1024 * 1024:
+                    continue
+                text = decoded.decode("utf-8", errors="ignore").strip()
+                if not text or text in seen:
+                    continue
+                printable = sum(ch.isprintable() or ch.isspace() for ch in text)
+                if printable / max(len(text), 1) < 0.85:
+                    continue
+                seen.add(text)
+                results.append(text)
+            except Exception:
+                continue
+        return results
 
-        try:
-            decoded = base64.b64decode(str(value), validate=True)
-            if not decoded or len(decoded) > 1024 * 1024:
-                return []
-            text = decoded.decode("utf-8", errors="ignore").strip()
-            if not text:
-                return []
-            # Only feed plausible textual payloads back into the detector.
-            printable = sum(ch.isprintable() or ch.isspace() for ch in text)
-            if printable / max(len(text), 1) < 0.85:
-                return []
-            return [text]
-        except Exception:
-            return []
+    def _phone_context(self, key: Any) -> bool:
+        normalized = self._normalize_key(key)
+        return (
+            len(normalized) <= 80
+            and bool(re.fullmatch(r"[a-z0-9_.\[\]-]+", normalized))
+            and bool(re.search(
+                r"(?:phone|mobile|telephone|tel|contact|msisdn|caller|recipient|number)",
+                normalized,
+            ))
+        )
 
-    def _analyze_text_signals(self, value: Any, findings, source, key):
-        """Detect strong privacy artifacts independent of parameter naming."""
+    def _analyze_text_signals(self, value: Any, findings, source, key,
+                              allow_phone=True, allow_base64=True):
+        """Detect high-confidence artifacts without treating arbitrary JS as phone data."""
         if value is None:
             return
-
         text = str(value)
 
         for email in self._find_emails(text):
-            findings.append(self.create_finding(
-                "Email", source, key, email
-            ))
+            findings.append(self.create_finding("Email", source, key, email))
 
-        # Generic phone detection is intentionally conservative. It accepts
-        # international +country-code forms anywhere, and plain 10-15 digit
-        # values only when the key provides contact/phone context.
-        phone_context = bool(re.search(
-            r"(?:phone|mobile|telephone|tel|contact|msisdn|caller|recipient|number)",
-            self._normalize_key(key)
-        ))
-        international_candidates = re.findall(
-            r"\+\d[\d .()\-]{8,14}\d", text
-        )
-        plain_candidates = []
-        if phone_context:
-            plain_candidates = re.findall(r"(?<!\d)\d{10,15}(?!\d)", text)
-        elif source == "URL Path":
-            # Path segments frequently carry identifiers directly. Treat a
-            # standalone 10-15 digit path segment as a phone candidate; do
-            # not scan arbitrary path text for digit sequences.
-            plain_candidates = re.findall(r"(?<!\d)\d{10,15}(?!\d)", text)
+        phone_context = self._phone_context(key)
 
-        for candidate in international_candidates + plain_candidates:
-            if self._is_phone_number(candidate):
-                findings.append(self.create_finding(
-                    "Phone", source, key, candidate
-                ))
+        # International phone numbers have a strong lexical signal. Plain
+        # 10-15 digit numbers are accepted only when the field is contextual.
+        if allow_phone:
+            international_candidates = re.findall(r"\+\d[\d .()\-]{8,14}\d", text)
+            plain_candidates = (
+                re.findall(r"(?<!\d)\d{10,15}(?!\d)", text)
+                if phone_context else []
+            )
+            for candidate in international_candidates + plain_candidates:
+                if self._is_phone_number(candidate):
+                    findings.append(self.create_finding("Phone", source, key, candidate))
+
+        if not allow_base64:
+            return
 
         for decoded in self._decode_base64_candidates(text):
+            # Base64 email detection is allowed because emails have a strong
+            # pattern. Phone detection requires structured/contextual data.
             for email in self._find_emails(decoded):
                 findings.append(self.create_finding(
                     "Email", source, f"{key}.__base64__", email
                 ))
-            if re.search(r"(?:phone|mobile|telephone|tel|contact|msisdn)", self._normalize_key(decoded)):
-                digits = re.sub(r"[^\d+]", "", decoded)
-                if self._is_phone_number(digits):
-                    findings.append(self.create_finding(
-                        "Phone", source, f"{key}.__base64__", digits
+
+            try:
+                decoded_json = json.loads(decoded)
+            except (json.JSONDecodeError, TypeError, ValueError):
+                decoded_json = None
+
+            if isinstance(decoded_json, (dict, list)):
+                for decoded_key, decoded_value in self._extract_json_pairs(decoded_json):
+                    if not self._phone_context(decoded_key):
+                        continue
+                    if self._is_phone_number(decoded_value):
+                        findings.append(self.create_finding(
+                            "Phone", source,
+                            f"{key}.__base64__.{decoded_key}", decoded_value
+                        ))
+                    for phone in re.findall(r"\+\d[\d .()\-]{8,14}\d", str(decoded_value)):
+                        if self._is_phone_number(phone):
+                            findings.append(self.create_finding(
+                                "Phone", source,
+                                f"{key}.__base64__.{decoded_key}", phone
+                            ))
+
+    # --------------------------------------------------
+    # Body decoding / extraction
+    # --------------------------------------------------
+
+    def _decode_body(self, body, content_type=None, content_encoding=None):
+        """Decode common HAR body encodings while preserving plain text fallback."""
+        if body is None:
+            return None
+        if isinstance(body, bytes):
+            raw = body
+        else:
+            text = str(body)
+            # Most HAR bodies are already textual. latin-1 preserves byte values
+            # when a compressed/binary body was decoded into a string.
+            raw = text.encode("latin-1", errors="replace")
+
+        encoding = (content_encoding or "").lower()
+        encodings = [e.strip() for e in encoding.split(",") if e.strip()]
+        candidates = [raw]
+
+        for enc in reversed(encodings):
+            current = candidates[-1]
+            try:
+                if enc in {"gzip", "x-gzip"}:
+                    candidates.append(gzip.decompress(current))
+                elif enc == "deflate":
+                    try:
+                        candidates.append(zlib.decompress(current))
+                    except zlib.error:
+                        candidates.append(zlib.decompress(current, -zlib.MAX_WBITS))
+            except Exception:
+                break
+
+        decoded = candidates[-1]
+        try:
+            return decoded.decode("utf-8")
+        except UnicodeDecodeError:
+            try:
+                return decoded.decode("latin-1")
+            except Exception:
+                return None
+
+    def _extract_json_pairs(self, data, parent_key="", depth=0, max_depth=32,
+                            max_pairs=10000):
+        if depth > max_depth:
+            return []
+        pairs = []
+        if isinstance(data, dict):
+            for key, value in data.items():
+                if len(pairs) >= max_pairs:
+                    break
+                current_key = f"{parent_key}.{key}" if parent_key else str(key)
+                if isinstance(value, (dict, list)):
+                    pairs.extend(self._extract_json_pairs(
+                        value, current_key, depth + 1, max_depth, max_pairs - len(pairs)
                     ))
+                else:
+                    pairs.append((current_key, value))
+        elif isinstance(data, list):
+            for index, value in enumerate(data):
+                if len(pairs) >= max_pairs:
+                    break
+                current_key = f"{parent_key}[{index}]" if parent_key else str(index)
+                if isinstance(value, (dict, list)):
+                    pairs.extend(self._extract_json_pairs(
+                        value, current_key, depth + 1, max_depth, max_pairs - len(pairs)
+                    ))
+                else:
+                    pairs.append((current_key, value))
+        return pairs
 
     # --------------------------------------------------
     # Structured body extraction
     # --------------------------------------------------
 
-    def _extract_json_pairs(
-        self,
-        data,
-        parent_key=""
-    ):
+    def _extract_multipart_pairs(self, body, content_type):
+        """Extract text fields from a multipart/form-data body."""
+        if not body or not content_type:
+            return []
+
+        match = re.search(
+            r'boundary=(?:"([^"]+)"|([^;]+))',
+            content_type,
+            re.IGNORECASE
+        )
+
+        if not match:
+            return []
+
+        boundary = match.group(1) or match.group(2)
+        boundary = boundary.strip()
+
+        if not boundary:
+            return []
+
+        delimiter = "--" + boundary
+        parts = str(body).split(delimiter)
 
         pairs = []
 
-        if isinstance(
-            data,
-            dict
-        ):
+        for part in parts:
+            part = part.strip()
 
-            for key, value in data.items():
+            if not part or part == "--":
+                continue
 
-                current_key = (
-                    f"{parent_key}.{key}"
-                    if parent_key
-                    else str(key)
+            # Remove the final multipart terminator.
+            if part.endswith("--"):
+                part = part[:-2].rstrip()
+
+            # Headers and content are separated by a blank line.
+            if "\r\n\r\n" in part:
+                headers_text, value = part.split("\r\n\r\n", 1)
+            elif "\n\n" in part:
+                headers_text, value = part.split("\n\n", 1)
+            else:
+                continue
+
+            name_match = re.search(
+                r'(?:^|;\s*)name="([^"]+)"',
+                headers_text,
+                re.IGNORECASE
+            )
+
+            if not name_match:
+                name_match = re.search(
+                    r'(?:^|;\s*)name=([^;\r\n]+)',
+                    headers_text,
+                    re.IGNORECASE
                 )
 
-                if isinstance(
-                    value,
-                    (dict, list)
-                ):
+            if not name_match:
+                continue
 
-                    pairs.extend(
-                        self._extract_json_pairs(
-                            value,
-                            current_key
-                        )
-                    )
+            field_name = name_match.group(1).strip()
+            value = value.strip("\r\n")
 
-                else:
+            # Avoid treating binary file uploads as text.
+            filename_match = re.search(
+                r'filename="[^"]*"',
+                headers_text,
+                re.IGNORECASE
+            )
 
-                    pairs.append(
-                        (
-                            current_key,
-                            value
-                        )
-                    )
-
-        elif isinstance(
-            data,
-            list
-        ):
-
-            for index, value in enumerate(
-                data
-            ):
-
-                current_key = (
-                    f"{parent_key}[{index}]"
-                    if parent_key
-                    else str(index)
+            if filename_match:
+                part_content_type = re.search(
+                    r'Content-Type:\s*([^\r\n]+)',
+                    headers_text,
+                    re.IGNORECASE
                 )
 
-                if isinstance(
-                    value,
-                    (dict, list)
+                if (
+                    not part_content_type
+                    or not (
+                        "text/" in part_content_type.group(1).lower()
+                        or "json" in part_content_type.group(1).lower()
+                    )
                 ):
+                    continue
 
-                    pairs.extend(
-                        self._extract_json_pairs(
-                            value,
-                            current_key
-                        )
-                    )
-
-                else:
-
-                    pairs.append(
-                        (
-                            current_key,
-                            value
-                        )
-                    )
+            pairs.append((field_name, value))
 
         return pairs
 
-    def _extract_body_pairs(
-        self,
-        body
-    ):
-
+    def _extract_body_pairs(self, body, body_type=None, content_type=None):
         if not body:
             return []
-
-        body = str(body).strip()
-
-        # ------------------------------------------
-        # JSON
-        # ------------------------------------------
+        if body_type == "multipart" or (content_type and "multipart/form-data" in content_type.lower()):
+            return self._extract_multipart_pairs(body, content_type)
 
         try:
-
             parsed = json.loads(body)
-
-            if isinstance(
-                parsed,
-                (dict, list)
-            ):
-
-                return self._extract_json_pairs(
-                    parsed
-                )
-
-        except (
-            json.JSONDecodeError,
-            TypeError,
-            ValueError
-        ):
-
+            if isinstance(parsed, (dict, list)):
+                return self._extract_json_pairs(parsed)
+        except (json.JSONDecodeError, TypeError, ValueError):
             pass
-
-        # ------------------------------------------
-        # URL encoded form data
-        # ------------------------------------------
 
         try:
-
-            parsed_pairs = parse_qsl(
-                body,
-                keep_blank_values=True
-            )
-
+            parsed_pairs = parse_qsl(str(body), keep_blank_values=True)
             if parsed_pairs:
-
                 return parsed_pairs
-
         except Exception:
-
             pass
-
         return []
 
     # --------------------------------------------------
     # gRPC / protobuf analysis
     # --------------------------------------------------
 
-    def _analyze_grpc_body(
-        self,
-        body,
-        findings,
-        source="gRPC Body"
-    ):
+    def _analyze_grpc_body(self, body, findings, source="gRPC Body"):
 
         if not body:
             return
@@ -839,20 +722,11 @@ class SensitiveDataDetector:
         # HAR normally gives us a string.
         # Convert it back to bytes without altering
         # the byte values represented by the string.
-        if isinstance(
-            body,
-            str
-        ):
+        if isinstance(body, str):
 
-            body_bytes = body.encode(
-                "latin-1",
-                errors="replace"
-            )
+            body_bytes = body.encode("latin-1", errors="replace")
 
-        elif isinstance(
-            body,
-            bytes
-        ):
+        elif isinstance(body, bytes):
 
             body_bytes = body
 
@@ -860,9 +734,7 @@ class SensitiveDataDetector:
 
             return
 
-        strings = ProtobufScanner.extract_strings(
-            body_bytes
-        )
+        strings = ProtobufScanner.extract_strings(body_bytes)
 
         for value in strings:
 
@@ -870,576 +742,246 @@ class SensitiveDataDetector:
             # Email
             # --------------------------------------
 
-            emails = self._find_emails(
-                value
-            )
+            emails = self._find_emails(value)
 
             for email in emails:
 
                 findings.append(
-                    self.create_finding(
-                        "Email",
-                        source,
-                        "protobuf_string",
-                        email
-                    )
+                    self.create_finding("Email", source, "protobuf_string", email)
                 )
 
             # --------------------------------------
             # Phone
             # --------------------------------------
 
-            if self._is_phone_number(
-                value
-            ):
-
-                findings.append(
-                    self.create_finding(
-                        "Phone",
-                        source,
-                        "protobuf_string",
-                        value
+            # Do not classify arbitrary numeric protobuf strings as phones.
+            # Only accept explicitly formatted international numbers here.
+            for phone in re.findall(r"\+\d[\d .()\-]{8,14}\d", str(value)):
+                if self._is_phone_number(phone):
+                    findings.append(
+                        self.create_finding(
+                            "Phone",
+                            source,
+                            "protobuf_string",
+                            phone,
+                        )
                     )
-                )
 
     # --------------------------------------------------
     # Body analysis
     # --------------------------------------------------
 
-    def _analyze_body(
-        self,
-        body,
-        findings,
-        body_type=None,
-        source="Request Body"
-    ):
-
+    def _analyze_body(self, body, findings, body_type=None, source="Request Body", content_type=None, content_encoding=None):
         if not body:
             return
 
-        # ------------------------------------------
-        # gRPC / protobuf
-        # ------------------------------------------
-
-        if body_type == "grpc":
-
-            grpc_source = (
-                "gRPC Body"
-                if source == "Request Body"
-                else "Response gRPC Body"
-            )
-
-            self._analyze_grpc_body(
-                body,
-                findings,
-                grpc_source
-            )
-
+        # Avoid pathological payloads while still allowing normal HAR bodies.
+        try:
+            body_length = len(body)
+        except Exception:
+            body_length = 0
+        if body_length > 8 * 1024 * 1024:
             return
 
-        # ------------------------------------------
-        # Structured body
-        # ------------------------------------------
+        decoded_body = self._decode_body(body, content_type, content_encoding)
+        if decoded_body is None:
+            return
 
-        body_pairs = self._extract_body_pairs(
-            body
-        )
+        if body_type == "grpc":
+            self._analyze_grpc_body(decoded_body, findings,
+                                    "gRPC Body" if source == "Request Body" else "Response gRPC Body")
+            return
 
+        body_pairs = self._extract_body_pairs(decoded_body, body_type, content_type)
         for key, value in body_pairs:
-
-            finding_type = (
-                self._classify_key_value(
-                    key,
-                    value
-                )
-            )
-
+            finding_type = self._classify_key_value(key, value)
             if finding_type:
+                findings.append(self.create_finding(finding_type, source, key, value))
 
-                findings.append(
-                    self.create_finding(
-                        finding_type,
-                        source,
-                        key,
-                        value,
-                    )
-                )
-
-            # Scan scalar values independently of their field name. This
-            # catches artifacts embedded in generic fields and JSON strings.
             signal_findings = []
             self._analyze_text_signals(
-                value,
-                signal_findings,
-                source,
-                key
+                value, signal_findings, source, key,
+                allow_phone=True, allow_base64=True
             )
             findings.extend(signal_findings)
 
-            # A form/query field may itself contain a JSON object. Parse it
-            # recursively so fields such as payload='{"email":"..."}' are
-            # not treated as opaque strings.
-            if isinstance(value, str):
+            # JSON embedded in a form/multipart field.
+            if isinstance(value, str) and len(value) <= 1024 * 1024:
                 try:
                     nested = json.loads(value)
-                    if isinstance(nested, (dict, list)):
-                        nested_pairs = self._extract_json_pairs(
-                            nested, str(key)
-                        )
-                        for nested_key, nested_value in nested_pairs:
-                            nested_type = self._classify_key_value(
-                                nested_key, nested_value
-                            )
-                            if nested_type:
-                                findings.append(self.create_finding(
-                                    nested_type,
-                                    source,
-                                    nested_key,
-                                    nested_value,
-                                ))
-                            nested_signals = []
-                            self._analyze_text_signals(
-                                nested_value,
-                                nested_signals,
-                                source,
-                                nested_key
-                            )
-                            findings.extend(nested_signals)
                 except (json.JSONDecodeError, TypeError, ValueError):
-                    pass
+                    nested = None
+                if isinstance(nested, (dict, list)):
+                    for nested_key, nested_value in self._extract_json_pairs(nested, str(key)):
+                        nested_type = self._classify_key_value(nested_key, nested_value)
+                        if nested_type:
+                            findings.append(self.create_finding(
+                                nested_type, source, nested_key, nested_value
+                            ))
+                        nested_signals = []
+                        self._analyze_text_signals(
+                            nested_value, nested_signals, source, nested_key
+                        )
+                        findings.extend(nested_signals)
 
-        # ------------------------------------------
-        # Free-form email detection
-        # ------------------------------------------
-
-        emails = self._find_emails(
-            body
-        )
-
-        for email in emails:
-
-            findings.append(
-                self.create_finding(
-                    "Email",
-                    source,
-                    "email",
-                    email
-                )
-            )
+        # Free-form response/request text: retain strong email detection, but
+        # do not scan arbitrary 10-digit sequences as phone numbers.
+        if len(decoded_body) <= 2 * 1024 * 1024:
+            for email in self._find_emails(decoded_body):
+                findings.append(self.create_finding("Email", source, "email", email))
 
     # --------------------------------------------------
     # Analyze Requests + Responses
+
     # --------------------------------------------------
 
-    def analyze(
-        self
-    ) -> List[Request]:
+    def _header_value(self, headers, name):
+        target = str(name).lower()
+        for key, value in (headers or {}).items():
+            if str(key).lower() == target:
+                return value
+        return None
 
+    def analyze(self) -> List[Request]:
         self._unique_findings.clear()
 
-        for request_index, request in enumerate(
-            self.requests
-        ):
+        session_cookie_keys = {
+            "session", "session_id", "sessionid", "session_token",
+            "sessiontoken", "reddit_session", "seeker_session",
+            "session_tracker",
+        }
 
+        for request_index, request in enumerate(self.requests):
             findings = []
-
-            # Prevent the same finding from being
-            # generated multiple times for one request.
             finding_signatures = set()
 
-            def add_finding(
-                finding_type,
-                source,
-                key,
-                value,
-                direction
-            ):
-
+            def add_finding(finding_type, source, key, value, direction):
                 signature = (
-                    finding_type,
-                    source,
-                    str(key).lower(),
-                    self._fingerprint(value)
+                    finding_type, source, str(key).lower(), self._fingerprint(value)
                 )
-
                 if signature in finding_signatures:
-
                     return
+                finding_signatures.add(signature)
+                findings.append(self.create_finding(
+                    finding_type, source, key, value, direction=direction
+                ))
 
-                finding_signatures.add(
-                    signature
-                )
-
-                findings.append(
-                    self.create_finding(
-                        finding_type,
-                        source,
-                        key,
-                        value
+            try:
+                # URL path: scan emails and explicitly formatted international
+                # phones, but never arbitrary 10-digit path segments.
+                url_path = self._get_url_path(getattr(request, "url", ""))
+                if url_path:
+                    path_findings = []
+                    self._analyze_text_signals(
+                        url_path, path_findings, "URL Path", "path",
+                        allow_phone=True, allow_base64=False
                     )
-                )
+                    for f in path_findings:
+                        add_finding(f.get("type"), "URL Path", f.get("key"),
+                                    f.get("_raw_value"), "outbound")
 
-            # --------------------------------------
-            # URL Path
-            # --------------------------------------
-
-            url_path = self._get_url_path(getattr(request, "url", ""))
-            if url_path:
-                self._analyze_text_signals(
-                    url_path,
-                    findings,
-                    "URL Path",
-                    "path"
-                )
-
-            # --------------------------------------
-            # Request Query Parameters
-            # --------------------------------------
-
-            # Parse the original URL as well as the extracted mapping. This
-            # preserves duplicate query keys and catches values lost by a
-            # dict-based representation.
-            query_pairs = list(self._iter_url_query_pairs(
-                getattr(request, "url", "")
-            ))
-            query_pairs.extend(
-                list(request.query_params.items())
-            )
-
-            for key, value in query_pairs:
-
-                finding_type = (
-                    self._classify_key_value(
-                        key,
-                        value
-                    )
-                )
-
-                if finding_type:
-
-                    add_finding(
-                        finding_type,
-                        "Query Parameter",
-                        key,
-                        value,
-                        "outbound"
-                    )
-
-                query_signal_findings = []
-                self._analyze_text_signals(
-                    value,
-                    query_signal_findings,
-                    "Query Parameter",
-                    key
-                )
-                for finding in query_signal_findings:
-                    add_finding(
-                        finding.get("type"),
-                        finding.get("source"),
-                        finding.get("key"),
-                        finding.get("_raw_value"),
-                        "outbound"
-                    )
-
-            # --------------------------------------
-            # Request Headers
-            # --------------------------------------
-
-            for key, value in (
-                request.headers.items()
-            ):
-
-                normalized_key = (
-                    self._normalize_key(key)
-                )
-
-                if normalized_key == "authorization":
-
-                    add_finding(
-                        "Authorization Token",
-                        "Header",
-                        key,
-                        value,
-                        "outbound"
-                    )
-
-                else:
+                # Query parameters: preserve duplicates and analyze each value.
+                query_pairs = list(getattr(request, "query_param_pairs", []) or [])
+                if not query_pairs:
+                    query_pairs = list(self._iter_url_query_pairs(getattr(request, "url", "")))
+                query_pairs.extend(list((getattr(request, "query_params", {}) or {}).items()))
+                for key, value in query_pairs:
                     finding_type = self._classify_key_value(key, value)
                     if finding_type:
-                        add_finding(
-                            finding_type,
-                            "Header",
-                            key,
-                            value,
-                            "outbound"
-                        )
+                        add_finding(finding_type, "Query Parameter", key, value, "outbound")
+                    signals = []
+                    self._analyze_text_signals(value, signals, "Query Parameter", key)
+                    for f in signals:
+                        add_finding(f.get("type"), "Query Parameter", f.get("key"),
+                                    f.get("_raw_value"), "outbound")
 
-                header_signal_findings = []
-                self._analyze_text_signals(
-                    value,
-                    header_signal_findings,
-                    "Header",
-                    key
-                )
-                for finding in header_signal_findings:
-                    add_finding(
-                        finding.get("type"),
-                        finding.get("source"),
-                        finding.get("key"),
-                        finding.get("_raw_value"),
-                        "outbound"
-                    )
-
-            # --------------------------------------
-            # Request Cookies
-            # --------------------------------------
-
-            session_cookie_keys = {
-                "session",
-                "session_id",
-                "sessionid",
-                "session_token",
-                "sessiontoken",
-                "reddit_session",
-                "seeker_session",
-                "session_tracker",
-            }
-
-            for key, value in (
-                request.cookies.items()
-            ):
-
-                normalized_key = (
-                    self._normalize_key(key)
-                )
-
-                if (
-                    normalized_key
-                    in session_cookie_keys
-                    or "session"
-                    in normalized_key
-                ):
-
-                    add_finding(
-                        "Session Cookie",
-                        "Cookie",
-                        key,
-                        value,
-                        "outbound"
-                    )
-
-                else:
+                # Headers: all header names, not only Authorization.
+                for key, value in (getattr(request, "headers", {}) or {}).items():
                     finding_type = self._classify_key_value(key, value)
+                    if self._normalize_key(key) == "authorization":
+                        finding_type = "Authorization Token"
                     if finding_type:
-                        add_finding(
-                            finding_type,
-                            "Cookie",
-                            key,
-                            value,
-                            "outbound"
-                        )
+                        add_finding(finding_type, "Header", key, value, "outbound")
+                    signals = []
+                    self._analyze_text_signals(value, signals, "Header", key)
+                    for f in signals:
+                        add_finding(f.get("type"), "Header", f.get("key"),
+                                    f.get("_raw_value"), "outbound")
 
-                cookie_signal_findings = []
-                self._analyze_text_signals(
-                    value,
-                    cookie_signal_findings,
-                    "Cookie",
-                    key
+                # Cookies: all cookie names plus session-cookie heuristic.
+                for key, value in (getattr(request, "cookies", {}) or {}).items():
+                    normalized = self._normalize_key(key)
+                    finding_type = "Session Cookie" if (
+                        normalized in session_cookie_keys or "session" in normalized
+                    ) else self._classify_key_value(key, value)
+                    if finding_type:
+                        add_finding(finding_type, "Cookie", key, value, "outbound")
+                    signals = []
+                    self._analyze_text_signals(value, signals, "Cookie", key)
+                    for f in signals:
+                        add_finding(f.get("type"), "Cookie", f.get("key"),
+                                    f.get("_raw_value"), "outbound")
+
+                # Request body
+                body_findings = []
+                self._analyze_body(
+                    getattr(request, "body", None), body_findings,
+                    getattr(request, "body_type", None), "Request Body",
+                    getattr(request, "content_type", None),
+                    self._header_value(getattr(request, "headers", {}), "content-encoding")
                 )
-                for finding in cookie_signal_findings:
-                    add_finding(
-                        finding.get("type"),
-                        finding.get("source"),
-                        finding.get("key"),
-                        finding.get("_raw_value"),
-                        "outbound"
-                    )
+                for f in body_findings:
+                    add_finding(f.get("type"), f.get("source"), f.get("key"),
+                                f.get("_raw_value"), "outbound")
 
-            # --------------------------------------
-            # Request Body
-            # --------------------------------------
-
-            body_findings = []
-
-            self._analyze_body(
-                request.body,
-                body_findings,
-                getattr(
-                    request,
-                    "body_type",
-                    None
-                ),
-                "Request Body"
-            )
-
-            for finding in body_findings:
-
-                raw_value = finding.get(
-                    "_raw_value"
-                )
-
-                add_finding(
-                    finding.get("type"),
-                    finding.get("source"),
-                    finding.get("key"),
-                    raw_value,
-                    "outbound"
-                )
-
-            # --------------------------------------
-            # Response Headers
-            # --------------------------------------
-
-            for key, value in (
-                request.response_headers.items()
-            ):
-
-                normalized_key = (
-                    self._normalize_key(key)
-                )
-
-                # Authorization response headers are uncommon,
-                # but should still be detected generically.
-                if normalized_key == "authorization":
-
-                    add_finding(
-                        "Authorization Token",
-                        "Response Header",
-                        key,
-                        value,
-                        "inbound"
-                    )
-
-                else:
+                # Response headers
+                for key, value in (getattr(request, "response_headers", {}) or {}).items():
                     finding_type = self._classify_key_value(key, value)
+                    if self._normalize_key(key) == "authorization":
+                        finding_type = "Authorization Token"
                     if finding_type:
-                        add_finding(
-                            finding_type,
-                            "Response Header",
-                            key,
-                            value,
-                            "inbound"
-                        )
+                        add_finding(finding_type, "Response Header", key, value, "inbound")
+                    signals = []
+                    self._analyze_text_signals(value, signals, "Response Header", key)
+                    for f in signals:
+                        add_finding(f.get("type"), "Response Header", f.get("key"),
+                                    f.get("_raw_value"), "inbound")
 
-                response_header_signal_findings = []
-                self._analyze_text_signals(
-                    value,
-                    response_header_signal_findings,
-                    "Response Header",
-                    key
-                )
-                for finding in response_header_signal_findings:
-                    add_finding(
-                        finding.get("type"),
-                        finding.get("source"),
-                        finding.get("key"),
-                        finding.get("_raw_value"),
-                        "inbound"
-                    )
-
-            # --------------------------------------
-            # Response Cookies
-            # --------------------------------------
-
-            for key, value in (
-                request.response_cookies.items()
-            ):
-
-                normalized_key = (
-                    self._normalize_key(key)
-                )
-
-                if (
-                    normalized_key
-                    in session_cookie_keys
-                    or "session"
-                    in normalized_key
-                ):
-
-                    add_finding(
-                        "Session Cookie",
-                        "Response Cookie",
-                        key,
-                        value,
-                        "inbound"
-                    )
-
-                else:
-                    finding_type = self._classify_key_value(key, value)
+                # Response cookies
+                for key, value in (getattr(request, "response_cookies", {}) or {}).items():
+                    normalized = self._normalize_key(key)
+                    finding_type = "Session Cookie" if (
+                        normalized in session_cookie_keys or "session" in normalized
+                    ) else self._classify_key_value(key, value)
                     if finding_type:
-                        add_finding(
-                            finding_type,
-                            "Response Cookie",
-                            key,
-                            value,
-                            "inbound"
-                        )
+                        add_finding(finding_type, "Response Cookie", key, value, "inbound")
+                    signals = []
+                    self._analyze_text_signals(value, signals, "Response Cookie", key)
+                    for f in signals:
+                        add_finding(f.get("type"), "Response Cookie", f.get("key"),
+                                    f.get("_raw_value"), "inbound")
 
-                response_cookie_signal_findings = []
-                self._analyze_text_signals(
-                    value,
-                    response_cookie_signal_findings,
-                    "Response Cookie",
-                    key
+                # Response body
+                response_findings = []
+                self._analyze_body(
+                    getattr(request, "response_body", None), response_findings,
+                    getattr(request, "response_body_type", None), "Response Body",
+                    getattr(request, "response_content_type", None),
+                    self._header_value(getattr(request, "response_headers", {}), "content-encoding")
                 )
-                for finding in response_cookie_signal_findings:
-                    add_finding(
-                        finding.get("type"),
-                        finding.get("source"),
-                        finding.get("key"),
-                        finding.get("_raw_value"),
-                        "inbound"
-                    )
+                for f in response_findings:
+                    add_finding(f.get("type"), f.get("source"), f.get("key"),
+                                f.get("_raw_value"), "inbound")
 
-            # --------------------------------------
-            # Response Body
-            # --------------------------------------
-
-            response_body_findings = []
-
-            self._analyze_body(
-                request.response_body,
-                response_body_findings,
-                getattr(
-                    request,
-                    "response_body_type",
-                    None
-                ),
-                "Response Body"
-            )
-
-            for finding in response_body_findings:
-
-                raw_value = finding.get(
-                    "_raw_value"
-                )
-
-                add_finding(
-                    finding.get("type"),
-                    finding.get("source"),
-                    finding.get("key"),
-                    raw_value,
-                    "inbound"
-                )
-
-            # --------------------------------------
-            # Preserve request-level evidence
-            # --------------------------------------
+            except Exception:
+                # One malformed request/body must never abort the entire HAR.
+                # Keep all successfully collected findings for this request.
+                pass
 
             for finding in findings:
-
-                self._record_unique_finding(
-                    finding,
-                    request,
-                    request_index,
-                )
-
-                # Never export raw sensitive values.
-                finding.pop(
-                    "_raw_value",
-                    None
-                )
-
+                self._record_unique_finding(finding, request, request_index)
+                finding.pop("_raw_value", None)
             request.sensitive_data = findings
 
         return self.requests
+

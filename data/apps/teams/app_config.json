@@ -1,0 +1,28 @@
+{
+  "app_name": "Microsoft Teams",
+  "package_name": "com.microsoft.teams",
+  "application_services": [
+    "teams.live.com",
+    "teams.events.data.microsoft.com",
+    "mss.office.com",
+    "substrate.office.com",
+    "graph.microsoft.com",
+    "login.microsoftonline.com",
+    "login.live.com",
+    "statics.teams.cdn.office.net"
+  ],
+  "third_party_services": [
+    "graph.microsoft.com",
+    "login.microsoftonline.com",
+    "login.live.com",
+    "teams.events.data.microsoft.com",
+    "www.microsoft.com",
+    "office.com",
+    "officeapps.live.com",
+    "outlook.office.com",
+    "config.edge.skype.com",
+    "browser.events.data.microsoft.com"
+  ],
+  "har_file": "har/teams.har",
+  "policy_file": "policy/teams_policy.json"
+}

@@ -1,0 +1,30 @@
+{
+  "app_name": "LinkedIn Web",
+  "policy_available": true,
+
+  "policy_sources": [
+    "https://www.linkedin.com/legal/privacy-policy",
+    "https://www.linkedin.com/legal/cookie-policy",
+    "https://www.linkedin.com/legal/l/cookie-table"
+  ],
+
+  "declared_categories": [
+    "Personal Information",
+    "Contacts",
+    "Authentication",
+    "Location",
+    "Payment Information",
+    "Search",
+    "Usage Data",
+    "Device Information",
+    "Device Identifier",
+    "Network Information",
+    "Media Access",
+    "Cookies"
+  ],
+
+  "tracking": {
+    "advertising_libraries": true,
+    "third_party_tracking": true
+  }
+}

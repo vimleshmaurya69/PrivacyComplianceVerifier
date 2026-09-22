@@ -1,0 +1,25 @@
+{
+  "app_name": "Blinkit",
+  "policy_available": true,
+  "policy_sources": [
+    "https://blinkit.com/privacy"
+  ],
+  "declared_categories": [
+    "Personal Information",
+    "Contacts",
+    "Authentication",
+    "Payment Information",
+    "Search",
+    "Usage Data",
+    "Location",
+    "Device Information",
+    "Device Identifier",
+    "Network Information",
+    "Media Access",
+    "Cookies"
+  ],
+  "tracking": {
+    "advertising_libraries": true,
+    "third_party_tracking": true
+  }
+}

@@ -1,0 +1,178 @@
+{
+  "app_name": "Google Chrome",
+  "package_name": "com.android.chrome",
+  "policy_available": true,
+  "policy_source": "https://policies.google.com/privacy",
+  "additional_sources": [
+    "https://support.google.com/chrome/answer/13730681?co=GENIE.Platform%3DAndroid&hl=en",
+    "https://support.google.com/chrome/answer/142065?co=GENIE.Platform%3DAndroid&hl=en",
+    "https://support.google.com/chrome/answer/165139?co=GENIE.Platform%3DAndroid&hl=en"
+  ],
+  "sources": [
+    {
+      "title": "Google Privacy Policy",
+      "url": "https://policies.google.com/privacy"
+    },
+    {
+      "title": "How Chrome keeps your URL & search data private",
+      "url": "https://support.google.com/chrome/answer/13730681?co=GENIE.Platform%3DAndroid&hl=en"
+    },
+    {
+      "title": "Manage your location settings in Chrome",
+      "url": "https://support.google.com/chrome/answer/142065?co=GENIE.Platform%3DAndroid&hl=en"
+    },
+    {
+      "title": "Chrome Sync and your data",
+      "url": "https://support.google.com/chrome/a/answer/13616205?hl=en"
+    }
+  ],
+  "last_verified": "2026-09-19",
+  "policy_scope": [
+    "Google Chrome for Android",
+    "Chrome browser services",
+    "Chrome browsing and search features",
+    "Google services used by Chrome"
+  ],
+  "declared_categories": [
+    "Personal Information",
+    "Device Information",
+    "Device Identifier",
+    "Network Information",
+    "Location",
+    "Usage Data",
+    "Search",
+    "Browsing History",
+    "Authentication",
+    "Cookies",
+    "Passwords",
+    "Payment Information",
+    "Autofill Data",
+    "Media Access"
+  ],
+  "declared_practices": [
+    {
+      "category": "Personal Information",
+      "data": [
+        "name",
+        "email address",
+        "contact information",
+        "identity information"
+      ]
+    },
+    {
+      "category": "Device Information",
+      "data": [
+        "device type",
+        "device settings",
+        "operating system",
+        "browser type",
+        "browser settings",
+        "application version"
+      ]
+    },
+    {
+      "category": "Device Identifier",
+      "data": [
+        "unique identifiers",
+        "device identifiers"
+      ]
+    },
+    {
+      "category": "Network Information",
+      "data": [
+        "IP address",
+        "mobile network information",
+        "carrier information",
+        "connection information"
+      ]
+    },
+    {
+      "category": "Location",
+      "data": [
+        "geolocation",
+        "precise location",
+        "location derived from IP address",
+        "location obtained through device services"
+      ]
+    },
+    {
+      "category": "Usage Data",
+      "data": [
+        "interaction with Google services",
+        "system activity",
+        "crash reports",
+        "interaction with content and ads"
+      ]
+    },
+    {
+      "category": "Search",
+      "data": [
+        "search terms",
+        "search queries",
+        "address bar queries",
+        "search suggestions"
+      ]
+    },
+    {
+      "category": "Browsing History",
+      "data": [
+        "Chrome browsing history",
+        "visited URLs",
+        "synced browsing history",
+        "open tabs"
+      ]
+    },
+    {
+      "category": "Authentication",
+      "data": [
+        "Google Account authentication",
+        "authentication information",
+        "session information"
+      ]
+    },
+    {
+      "category": "Cookies",
+      "data": [
+        "cookies",
+        "site data",
+        "web storage",
+        "application caches"
+      ]
+    },
+    {
+      "category": "Passwords",
+      "data": [
+        "saved passwords",
+        "sign-in information"
+      ]
+    },
+    {
+      "category": "Payment Information",
+      "data": [
+        "payment information",
+        "saved payment information"
+      ]
+    },
+    {
+      "category": "Autofill Data",
+      "data": [
+        "autofill information",
+        "addresses",
+        "saved form information"
+      ]
+    },
+    {
+      "category": "Media Access",
+      "data": [
+        "camera",
+        "microphone",
+        "downloaded files",
+        "uploaded files"
+      ]
+    }
+  ],
+  "tracking": {
+    "advertising_libraries": true,
+    "third_party_tracking": true
+  }
+}

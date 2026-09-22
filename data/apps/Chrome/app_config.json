@@ -1,0 +1,24 @@
+{
+  "app_name": "Google Chrome",
+  "package_name": "com.android.chrome",
+  "application_services": [
+    "www.google.com",
+    "www.googleapis.com",
+    "optimizationguide-pa.googleapis.com",
+    "content-autofill.googleapis.com",
+    "play.google.com",
+    "www.gstatic.com",
+    "ssl.gstatic.com",
+    "googleusercontent.com",
+    "lh3.googleusercontent.com",
+    "android.googleapis.com"
+  ],
+  "third_party_services": [
+    "gstatic.com",
+    "googleapis.com",
+    "google.com",
+    "googleusercontent.com"
+  ],
+  "har_file": "har/chrome.har",
+  "policy_file": "policy/chrome_policy.json"
+}

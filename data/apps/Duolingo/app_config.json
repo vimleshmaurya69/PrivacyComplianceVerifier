@@ -1,0 +1,27 @@
+{
+    "app_name": "Duolingo",
+    "package_name": "com.duolingo",
+    "application_services": [
+        "android-api-cf.duolingo.com",
+        "excess.duolingo.com",
+        "zombie.duolingo.com",
+        "brb.duolingo.com",
+        "duolingo-achievements-prod.duolingo.com",
+        "simg-ssl.duolingo.com",
+        "static-ssl.duolingo.com",
+        "stories.duolingo.com",
+        "friends.duolingo.com",
+        "cloudfront.net"
+    ],
+    "third_party_services": [
+        "www.googleadservices.com",
+        "app.adjust.com",
+        "graph.facebook.com",
+        "firebaseinstallations.googleapis.com",
+        "firebase-settings.crashlytics.com",
+        "firebaselogging.googleapis.com",
+        "s3.amazonaws.com"
+    ],
+    "har_file": "har/duolingo.har",
+    "policy_file": "policy/duolingo_policy.json"
+}

@@ -1,0 +1,23 @@
+{
+  "app_name": "YouTube",
+  "package_name": "",
+  "client_type": "web",
+  "application_services": [
+    "youtube.com",
+    "ytimg.com",
+    "googlevideo.com",
+    "googleusercontent.com",
+    "ggpht.com",
+    "gstatic.com",
+    "google.com",
+    "googleapis.com"
+  ],
+  "third_party_services": [
+    "doubleclick.net",
+    "googlesyndication.com",
+    "google-analytics.com",
+    "googletagmanager.com"
+  ],
+  "har_file": "har/youtube.har",
+  "policy_file": "policy/youtube_policy.json"
+}

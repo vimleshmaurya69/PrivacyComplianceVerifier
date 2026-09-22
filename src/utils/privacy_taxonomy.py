@@ -20,6 +20,7 @@ PRIVACY_CATEGORY_MAP = {
     "Name": "Personal Information",
     "Date of Birth": "Personal Information",
     "Address": "Personal Information",
+    "User ID": "Personal Information",
 
     # --------------------------------------------------
     # Authentication

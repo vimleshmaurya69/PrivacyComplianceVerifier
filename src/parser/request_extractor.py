@@ -1,4 +1,4 @@
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs, parse_qsl, urlparse
 from typing import List
 
 from src.models.request import Request
@@ -54,6 +54,9 @@ class RequestExtractor:
 
         elif "x-www-form-urlencoded" in content_type_lower:
             return "form"
+
+        elif "multipart/form-data" in content_type_lower:
+            return "multipart"
 
         elif (
             content_type_lower.startswith("text/")
@@ -247,7 +250,8 @@ class RequestExtractor:
             query_params = {}
 
             parsed_query = parse_qs(
-                parsed_url.query
+                parsed_url.query,
+                keep_blank_values=True
             )
 
             for key, value in parsed_query.items():
@@ -256,6 +260,13 @@ class RequestExtractor:
                     if value
                     else ""
                 )
+
+            # Preserve every query parameter occurrence,
+            # including duplicate parameters.
+            query_param_pairs = parse_qsl(
+                parsed_url.query,
+                keep_blank_values=True
+            )
 
             # -------------------------------------------------
             # Request Body
@@ -317,6 +328,7 @@ class RequestExtractor:
 
                 headers=headers,
                 query_params=query_params,
+                query_param_pairs=query_param_pairs,
                 body=body,
                 cookies=cookies,
 

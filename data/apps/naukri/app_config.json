@@ -1,0 +1,34 @@
+{
+    "app_name": "Naukri",
+    "package_name": "naukriApp.appModules.login",
+    "application_services": [
+        "www.naukri.com",
+        "naukri.com",
+        "login.naukri.com",
+        "m.naukri.com",
+        "resume.naukri.com",
+        "company.naukri.com",
+        "media.naukri.com",
+        "logs.naukri.com",
+        "api.naukri.com"
+    ],
+    "third_party_services": [
+        "googleapis.com",
+        "google.com",
+        "gstatic.com",
+        "googleusercontent.com",
+        "appsflyer.com",
+        "appsflyersdk.com",
+        "facebook.com",
+        "graph.facebook.com",
+        "clarity.ms",
+        "inspectlet.com",
+        "firebaseinstallations.googleapis.com",
+        "firebaseremoteconfig.googleapis.com",
+        "app-measurement.com",
+        "doubleclick.net",
+        "googleadservices.com"
+    ],
+    "har_file": "har/naukri.har",
+    "policy_file": "policy/naukri_policy.json"
+}

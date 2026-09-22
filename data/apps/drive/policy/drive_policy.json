@@ -1,0 +1,107 @@
+{
+    "app_name": "Google Drive",
+    "policy_available": true,
+    "source": "https://support.google.com/drive/answer/10375054",
+    "last_verified": "2026-09-22",
+    "declared_practices": [
+        {
+            "category": "Personal Information",
+            "data_type": "Name, email address and Google Account information",
+            "purpose": "Account management, synchronization, sign-in and service notifications",
+            "recipient": "Google",
+            "source": "Google Drive Privacy Help"
+        },
+        {
+            "category": "Authentication",
+            "data_type": "Account authentication information and account identifiers",
+            "purpose": "Sign-in, account security and access to stored files",
+            "recipient": "Google",
+            "source": "Google Drive Privacy Help"
+        },
+        {
+            "category": "Media Access",
+            "data_type": "Files, documents, images, videos and other content uploaded or stored in Drive",
+            "purpose": "Store, synchronize, search, process and provide access to user content",
+            "recipient": "Google",
+            "source": "Google Drive Privacy Help"
+        },
+        {
+            "category": "Usage Data",
+            "data_type": "Drive activity, interactions, performance information, crash information and service usage",
+            "purpose": "Service operation, performance, troubleshooting, security and abuse prevention",
+            "recipient": "Google",
+            "source": "Google Drive Privacy Help"
+        },
+        {
+            "category": "Search",
+            "data_type": "Drive search queries and search activity",
+            "purpose": "Provide file search and retain recent Drive searches",
+            "recipient": "Google",
+            "source": "Google Drive Privacy Help"
+        },
+        {
+            "category": "Device Information",
+            "data_type": "Device, operating system, application and technical information",
+            "purpose": "Service operation, performance, troubleshooting and security",
+            "recipient": "Google",
+            "source": "Google Privacy Policy"
+        },
+        {
+            "category": "Device Identifier",
+            "data_type": "Unique device and application identifiers",
+            "purpose": "Service operation, security, diagnostics and account/device management",
+            "recipient": "Google",
+            "source": "Google Privacy Policy"
+        },
+        {
+            "category": "Network Information",
+            "data_type": "IP address and network-related information",
+            "purpose": "Service operation, security, abuse prevention and diagnostics",
+            "recipient": "Google",
+            "source": "Google Privacy Policy"
+        },
+        {
+            "category": "Location",
+            "data_type": "General or precise location information depending on device and account settings",
+            "purpose": "Security, product functionality and geographically relevant experiences",
+            "recipient": "Google",
+            "source": "Google Drive Privacy Help and Google Privacy Policy"
+        },
+        {
+            "category": "Payment Information",
+            "data_type": "Google Drive or Google One storage purchase and transaction information",
+            "purpose": "Retrieve and manage storage purchases and paid services",
+            "recipient": "Google",
+            "source": "Google Drive Privacy Help"
+        },
+        {
+            "category": "Contacts",
+            "data_type": "Contact information associated with Google Account features or file sharing",
+            "purpose": "Sharing and collaboration",
+            "recipient": "Google",
+            "source": "Google Privacy Policy"
+        }
+    ],
+    "declared_categories": [
+        "Personal Information",
+        "Authentication",
+        "Media Access",
+        "Usage Data",
+        "Search",
+        "Device Information",
+        "Device Identifier",
+        "Network Information",
+        "Location",
+        "Payment Information",
+        "Contacts"
+    ],
+    "third_party_services": [
+        "Firebase",
+        "Google Play services"
+    ],
+    "tracking": {
+        "advertising_libraries": false,
+        "third_party_tracking": false,
+        "analytics": true
+    }
+}

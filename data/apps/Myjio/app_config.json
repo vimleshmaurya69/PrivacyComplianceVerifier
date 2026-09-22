@@ -1,0 +1,38 @@
+{
+  "app_name": "MyJio",
+  "package_name": "com.jio.myjio",
+  "application_services": [
+    "myjio-gateway.jio.com",
+    "myjio.jio.com",
+    "www.jio.com",
+    "apis.jiocoupons.in",
+    "jiocloud.com",
+    "jio.com",
+    "jioengage.jio.com",
+    "jiotv.com",
+    "jiosaavn.com",
+    "jiogames.com",
+    "jioapps.jio.com",
+    "myjio-prod.jio.com"
+  ],
+  "third_party_services": [
+    "eu1.clevertap-prod.com",
+    "app-measurement.com",
+    "analytics.google.com",
+    "www.google-analytics.com",
+    "googleads.g.doubleclick.net",
+    "www.googletagmanager.com",
+    "firebaseinstallations.googleapis.com",
+    "firebaseremoteconfig.googleapis.com",
+    "firebaselogging-pa.googleapis.com",
+    "crashlyticsreports-pa.googleapis.com",
+    "www.googleapis.com",
+    "play.googleapis.com",
+    "android.googleapis.com",
+    "fonts.googleapis.com",
+    "fonts.gstatic.com",
+    "graph.facebook.com"
+  ],
+  "har_file": "har/myjio.har",
+  "policy_file": "policy/myjio_policy.json"
+}

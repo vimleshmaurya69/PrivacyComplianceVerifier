@@ -1,0 +1,26 @@
+{
+    "app_name": "Google Drive",
+    "package_name": "com.google.android.apps.docs",
+    "application_services": [
+        "drivefrontend-pa.googleapis.com",
+        "www.googleapis.com",
+        "lh3.googleusercontent.com",
+        "subscriptionsfirstparty-pa.googleapis.com",
+        "subscriptionsmanagement-pa.googleapis.com",
+        "cloudsearch.googleapis.com",
+        "appsgenaiserver-pa.googleapis.com",
+        "blobcomments-pa.googleapis.com",
+        "workspaceui-pa.googleapis.com",
+        "drivesharefrontend-pa.googleapis.com",
+        "gmscompliance-pa.googleapis.com",
+        "workspacevideo-pa.googleapis.com",
+        "notifications-pa.googleapis.com"
+    ],
+    "third_party_services": [
+        "firebaseinstallations.googleapis.com",
+        "www.gstatic.com",
+        "play.googleapis.com"
+    ],
+    "har_file": "har/drive.har",
+    "policy_file": "policy/drive_policy.json"
+}

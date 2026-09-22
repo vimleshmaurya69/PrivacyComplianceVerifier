@@ -1,0 +1,127 @@
+{
+  "app": "Gmail",
+  "package": "com.google.android.gm",
+  "policy_available": true,
+  "source": "https://support.google.com/mail/answer/10434152?hl=en",
+  "additional_source": "https://policies.google.com/privacy",
+  "sources": [
+    {
+      "type": "Gmail Privacy Help",
+      "source": "https://support.google.com/mail/answer/10434152?hl=en"
+    },
+    {
+      "type": "Google Privacy Policy",
+      "source": "https://policies.google.com/privacy"
+    }
+  ],
+  "last_verified": "2026-09-19",
+  "policy_scope": [
+    "Gmail Android application",
+    "Gmail service",
+    "Google Account services used by Gmail"
+  ],
+  "declared_categories": [
+    "Personal Information",
+    "Contacts",
+    "Device Information",
+    "Device Identifier",
+    "Network Information",
+    "Location",
+    "Authentication",
+    "Usage Data",
+    "Search",
+    "Media Access",
+    "Cookies"
+  ],
+  "declared_practices": [
+    {
+      "data": "Name and email address",
+      "data_type": "Name and email address used for account access, synchronization and service communication",
+      "category": "Personal Information",
+      "purpose": "Account access, synchronization and Gmail service functionality",
+      "source": "Gmail Privacy Help"
+    },
+    {
+      "data": "Email messages and communications",
+      "data_type": "Emails sent, received and stored through Gmail",
+      "category": "Personal Information",
+      "purpose": "Providing Gmail and related features",
+      "source": "Gmail Privacy Help"
+    },
+    {
+      "data": "Contacts",
+      "data_type": "Contacts used to help compose and address emails",
+      "category": "Contacts",
+      "purpose": "Email addressing and Gmail functionality",
+      "source": "Gmail Privacy Help"
+    },
+    {
+      "data": "Device information",
+      "data_type": "Device characteristics, operating system, application version, network and performance information",
+      "category": "Device Information",
+      "purpose": "Service operation, security, troubleshooting and reliability",
+      "source": "Google Privacy Policy"
+    },
+    {
+      "data": "Device identifiers",
+      "data_type": "Unique identifiers associated with the device, application or browser",
+      "category": "Device Identifier",
+      "purpose": "Service operation, security and account/service recognition",
+      "source": "Google Privacy Policy"
+    },
+    {
+      "data": "IP address and network information",
+      "data_type": "IP address, network connection information and request-related information",
+      "category": "Network Information",
+      "purpose": "Service delivery, security and reliability",
+      "source": "Google Privacy Policy"
+    },
+    {
+      "data": "Location information",
+      "data_type": "Location information used in applicable Google services and security contexts",
+      "category": "Location",
+      "purpose": "Security and service-related functionality",
+      "source": "Gmail Privacy Help"
+    },
+    {
+      "data": "Authentication and account security information",
+      "data_type": "Account credentials, authentication and security information",
+      "category": "Authentication",
+      "purpose": "Account access and security",
+      "source": "Gmail Privacy Help"
+    },
+    {
+      "data": "Usage and interaction data",
+      "data_type": "Gmail activity, interactions, feature use, performance and crash information",
+      "category": "Usage Data",
+      "purpose": "Service provision, security, personalization, performance and reliability",
+      "source": "Gmail Privacy Help"
+    },
+    {
+      "data": "Gmail search queries",
+      "data_type": "Recent Gmail search queries and related activity",
+      "category": "Search",
+      "purpose": "Search functionality and related Gmail features",
+      "source": "Gmail Privacy Help"
+    },
+    {
+      "data": "Attachments and other media",
+      "data_type": "Attachments, photos, videos and other content handled through Gmail",
+      "category": "Media Access",
+      "purpose": "Email communication and content handling",
+      "source": "Gmail Privacy Help"
+    },
+    {
+      "data": "Cookies and similar technologies",
+      "data_type": "Cookies and similar technologies used by Google services",
+      "category": "Cookies",
+      "purpose": "Authentication, service operation, preferences and security",
+      "source": "Google Privacy Policy"
+    }
+  ],
+  "tracking": {
+    "advertising_libraries": false,
+    "third_party_tracking": false,
+    "analytics": true
+  }
+}

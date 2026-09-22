@@ -1,0 +1,115 @@
+{
+    "app_name": "Canva",
+    "policy_available": true,
+    "source": "https://www.canva.com/en_in/policies/privacy-policy/",
+    "last_verified": "2026-09-22",
+    "declared_practices": [
+        {
+            "category": "Personal Information",
+            "data_type": "Name, email address, phone number, username, profession and account information",
+            "purpose": "Account management, communication and provision of Canva services",
+            "recipient": "Canva, affiliates and applicable service providers",
+            "source": "Canva Privacy Policy"
+        },
+        {
+            "category": "Authentication",
+            "data_type": "Login credentials, authentication information and account identifiers",
+            "purpose": "Account access, authentication and security",
+            "recipient": "Canva",
+            "source": "Canva Privacy Policy"
+        },
+        {
+            "category": "Usage Data",
+            "data_type": "Service activity, interactions, pages viewed, clicks, design activity and feature usage",
+            "purpose": "Service operation, analytics, personalization and service improvement",
+            "recipient": "Canva and applicable analytics/service providers",
+            "source": "Canva Privacy Policy"
+        },
+        {
+            "category": "Device Information",
+            "data_type": "Device, operating system, browser/application and technical information",
+            "purpose": "Service operation, diagnostics, analytics and security",
+            "recipient": "Canva and service providers",
+            "source": "Canva Privacy Policy"
+        },
+        {
+            "category": "Device Identifier",
+            "data_type": "Device identifiers including advertising identifiers and UUIDs",
+            "purpose": "Service operation, analytics, attribution and advertising",
+            "recipient": "Canva and advertising/analytics partners",
+            "source": "Canva Privacy Policy"
+        },
+        {
+            "category": "Network Information",
+            "data_type": "IP address, network information and related technical information",
+            "purpose": "Service operation, security, analytics and advertising",
+            "recipient": "Canva and applicable service providers",
+            "source": "Canva Privacy Policy"
+        },
+        {
+            "category": "Location",
+            "data_type": "Precise or approximate location and location inferred from IP address",
+            "purpose": "Localization, personalization, analytics, advertising and tax-related purposes",
+            "recipient": "Canva, affiliates and applicable partners/service providers",
+            "source": "Canva Privacy Policy"
+        },
+        {
+            "category": "Search",
+            "data_type": "Search queries, prompts and other search-related interactions",
+            "purpose": "Provide requested content, personalize the service and improve Canva",
+            "recipient": "Canva",
+            "source": "Canva Privacy Policy"
+        },
+        {
+            "category": "Media Access",
+            "data_type": "Uploaded images, photos, videos, audio, documents, designs and related content metadata",
+            "purpose": "Provide design functionality, store and process user content, service improvement and applicable AI features",
+            "recipient": "Canva and applicable trusted partners/service providers",
+            "source": "Canva Privacy Policy"
+        },
+        {
+            "category": "Cookies",
+            "data_type": "Cookies, pixels, web beacons and similar tracking technologies",
+            "purpose": "Authentication, preferences, analytics, advertising and measurement",
+            "recipient": "Canva and applicable advertising/analytics partners",
+            "source": "Canva Privacy Policy and Cookies Policy"
+        },
+        {
+            "category": "Payment Information",
+            "data_type": "Billing and transaction information",
+            "purpose": "Process transactions and provide paid Canva services",
+            "recipient": "Canva and payment service providers",
+            "source": "Canva Privacy Policy"
+        }
+    ],
+    "declared_categories": [
+        "Personal Information",
+        "Authentication",
+        "Usage Data",
+        "Device Information",
+        "Device Identifier",
+        "Network Information",
+        "Location",
+        "Search",
+        "Media Access",
+        "Cookies",
+        "Payment Information"
+    ],
+    "third_party_services": [
+        "Google",
+        "Google Ads",
+        "Firebase",
+        "Facebook",
+        "AppsFlyer",
+        "Braze",
+        "Branch",
+        "Sentry",
+        "Cloudflare",
+        "TokenEx"
+    ],
+    "tracking": {
+        "advertising_libraries": true,
+        "third_party_tracking": true,
+        "analytics": true
+    }
+}

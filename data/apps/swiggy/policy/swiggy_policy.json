@@ -1,0 +1,24 @@
+{
+  "app_name": "Swiggy",
+  "policy_available": true,
+  "policy_sources": [
+    "https://driver-media-assets.swiggy.com/roadrunner-assets/sites/privacy-policy.html"
+  ],
+  "declared_categories": [
+    "Personal Information",
+    "Authentication",
+    "Search",
+    "Usage Data",
+    "Payment Information",
+    "Location",
+    "Device Information",
+    "Device Identifier",
+    "Network Information",
+    "Media Access",
+    "Cookies"
+  ],
+  "tracking": {
+    "advertising_libraries": true,
+    "third_party_tracking": true
+  }
+}

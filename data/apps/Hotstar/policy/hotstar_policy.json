@@ -1,0 +1,25 @@
+{
+  "app_name": "JioHotstar",
+  "policy_available": true,
+  "policy_sources": [
+    "https://secure-media.hotstar.com/web-assets/pp/privacy-policy/privacy-policy-production_IN_new_app.html"
+  ],
+  "declared_categories": [
+    "Personal Information",
+    "Contacts",
+    "Authentication",
+    "Location",
+    "Payment Information",
+    "Search",
+    "Usage Data",
+    "Media Access",
+    "Device Information",
+    "Device Identifier",
+    "Network Information",
+    "Cookies"
+  ],
+  "tracking": {
+    "advertising_libraries": true,
+    "third_party_tracking": true
+  }
+}

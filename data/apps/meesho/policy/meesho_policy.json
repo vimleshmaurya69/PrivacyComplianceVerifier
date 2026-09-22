@@ -1,0 +1,25 @@
+{
+  "app_name": "Meesho",
+  "policy_available": true,
+  "policy_sources": [
+    "https://www.meesho.com/legal/privacy"
+  ],
+  "declared_categories": [
+    "Personal Information",
+    "Authentication",
+    "Contacts",
+    "Search",
+    "Usage Data",
+    "Payment Information",
+    "Location",
+    "Device Information",
+    "Device Identifier",
+    "Network Information",
+    "Media Access",
+    "Cookies"
+  ],
+  "tracking": {
+    "advertising_libraries": true,
+    "third_party_tracking": true
+  }
+}

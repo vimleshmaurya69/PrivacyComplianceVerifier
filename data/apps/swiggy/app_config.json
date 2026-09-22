@@ -1,0 +1,39 @@
+{
+  "app_name": "Swiggy",
+  "platform": "web",
+  "application_services": [
+    "www.swiggy.com",
+    "analytics.swiggy.com",
+    "profile.swiggy.com",
+    "payments.swiggy.com",
+    "maps.swiggy.com",
+    "maps.swiggy.com",
+    "media-assets.swiggy.com",
+    "instamart-media-assets.swiggy.com",
+    "fna.swiggy.com",
+    "click.swiggy.com"
+  ],
+  "third_party_services": [
+    "insights-collector.newrelic.com",
+    "mobile-collector.newrelic.com",
+    "bam.nr-data.net",
+    "b67f7794189c.edge.sdk.awswaf.com",
+    "www.google.com",
+    "www.google.co.in",
+    "www.google-analytics.com",
+    "analytics.google.com",
+    "www.googletagmanager.com",
+    "googleads.g.doubleclick.net",
+    "ad.doubleclick.net",
+    "www.facebook.com",
+    "graph.facebook.com",
+    "optimizationguide-pa.googleapis.com",
+    "content-autofill.googleapis.com",
+    "safebrowsing.google.com",
+    "play.googleapis.com",
+    "youtubei.googleapis.com",
+    "sdk-03.moengage.com"
+  ],
+  "har_file": "har/swiggy.har",
+  "policy_file": "policy/swiggy_policy.json"
+}

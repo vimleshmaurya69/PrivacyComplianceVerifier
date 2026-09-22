@@ -1,0 +1,37 @@
+{
+  "app_name": "LinkedIn",
+  "platform": "web",
+  "application_services": [
+    "www.linkedin.com",
+    "in.linkedin.com",
+    "media.licdn.com",
+    "static.licdn.com",
+    "platform.linkedin.com",
+    "realtime.www.linkedin.com",
+    "dms.licdn.com",
+    "merchantpool1.linkedin.com"
+  ],
+  "third_party_services": [
+    "accounts.google.com",
+    "optimizationguide-pa.googleapis.com",
+    "content-autofill.googleapis.com",
+    "www.google.com",
+    "www.gstatic.com",
+    "play.google.com",
+    "youtubei.googleapis.com",
+    "www.recaptcha.net",
+    "fonts.gstatic.com",
+    "lnkd.demdex.net",
+    "dpm.demdex.net",
+    "cm.g.doubleclick.net",
+    "c.bing.com",
+    "beacons.gcp.gvt2.com",
+    "collector-pxdojv695v.protechts.net",
+    "li.protechts.net",
+    "tzm.protechts.net",
+    "ri.px-cloud.net",
+    "radar.cedexis.com"
+  ],
+  "har_file": "har/linkedin.har",
+  "policy_file": "policy/linkedin_policy.json"
+}

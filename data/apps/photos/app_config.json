@@ -1,0 +1,26 @@
+{
+    "app_name": "Google Photos",
+    "package_name": "com.google.android.apps.photos",
+    "application_services": [
+        "photosdata-pa.googleapis.com",
+        "photos.googleapis.com",
+        "ap2.googleusercontent.com",
+        "lh3.googleusercontent.com",
+        "peoplestack-pa.googleapis.com",
+        "mapsmobilesdks-pa.googleapis.com",
+        "places.googleapis.com",
+        "clients4.google.com",
+        "www.google.com",
+        "www.gstatic.com",
+        "s.youtube.com"
+    ],
+    "third_party_services": [
+        "firebaseinstallations.googleapis.com",
+        "firebase-settings.crashlytics.com",
+        "firebaseremoteconfig.googleapis.com",
+        "play.googleapis.com",
+        "youtubei.googleapis.com"
+    ],
+    "har_file": "har/photos.har",
+    "policy_file": "policy/photos_policy.json"
+}

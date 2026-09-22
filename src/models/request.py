@@ -20,6 +20,7 @@ class Request:
 
     headers: Dict[str, str] = field(default_factory=dict)
     query_params: Dict[str, str] = field(default_factory=dict)
+    query_param_pairs: list[tuple[str, str]] = field(default_factory=list)
     body: Optional[str] = None
     cookies: Dict[str, str] = field(default_factory=dict)
 

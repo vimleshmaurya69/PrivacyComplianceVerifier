@@ -1,0 +1,25 @@
+{
+  "app_name": "Rapido",
+  "policy_sources": [
+    {
+      "title": "Rapido Privacy Policy",
+      "url": "https://www.rapido.bike/Privacy"
+    }
+  ],
+  "declared_categories": [
+    "Authentication",
+    "Contacts",
+    "Device Identifier",
+    "Device Information",
+    "Location",
+    "Network Information",
+    "Payment Information",
+    "Personal Information",
+    "Search",
+    "Usage Data"
+  ],
+  "tracking": {
+    "advertising_libraries": true,
+    "third_party_tracking": true
+  }
+}

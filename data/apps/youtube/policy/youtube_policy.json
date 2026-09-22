@@ -1,0 +1,106 @@
+{
+  "app": "YouTube",
+  "package": "",
+  "policy_available": true,
+  "source": "https://policies.google.com/privacy",
+  "website_source": "https://www.youtube.com/howyoutubeworks/user-settings/privacy/",
+  "last_verified": "2026-09-16",
+  "policy_scope": [
+    "YouTube service",
+    "Google services and products covered by the Google Privacy Policy",
+    "YouTube web client evaluated in this experiment"
+  ],
+  "declared_categories": [
+    "Personal Information",
+    "Device Information",
+    "Device Identifier",
+    "Network Information",
+    "Location",
+    "Authentication",
+    "Search",
+    "Usage Data",
+    "Cookies",
+    "Media Access",
+    "Microphone",
+    "Financial Information"
+  ],
+  "declared_practices": [
+    {
+      "category": "Personal Information",
+      "data_type": "Name, email address, phone number, account information and other information associated with a Google Account",
+      "purpose": "Account and service provision",
+      "source": "privacy_policy"
+    },
+    {
+      "category": "Authentication",
+      "data_type": "Google Account credentials and authentication information",
+      "purpose": "Account access and security",
+      "source": "privacy_policy"
+    },
+    {
+      "category": "Device Information",
+      "data_type": "Browser type and settings, device type and settings, operating system, application/browser information and system activity",
+      "purpose": "Service operation, security, troubleshooting and product improvement",
+      "source": "privacy_policy"
+    },
+    {
+      "category": "Device Identifier",
+      "data_type": "Unique identifiers associated with the browser, application or device",
+      "purpose": "Service operation, preferences, personalization and advertising",
+      "source": "privacy_policy"
+    },
+    {
+      "category": "Network Information",
+      "data_type": "IP address, referrer URL, network and connection information",
+      "purpose": "Service operation, security, analytics and location estimation",
+      "source": "privacy_policy"
+    },
+    {
+      "category": "Location",
+      "data_type": "IP-based location and, depending on product and settings, device-derived location information",
+      "purpose": "Service features, recommendations, security and advertising",
+      "source": "privacy_policy"
+    },
+    {
+      "category": "Search",
+      "data_type": "Search terms and queries",
+      "purpose": "Service operation, recommendations and personalization",
+      "source": "privacy_policy"
+    },
+    {
+      "category": "Usage Data",
+      "data_type": "Videos watched, viewing history, interactions with content and ads, preferences and activity on Google services",
+      "purpose": "Service provision, recommendations, personalization, analytics and advertising",
+      "source": "privacy_policy"
+    },
+    {
+      "category": "Cookies",
+      "data_type": "Cookies and similar technologies, including YouTube preference and session cookies",
+      "purpose": "Session management, preferences, service operation and personalization",
+      "source": "privacy_policy"
+    },
+    {
+      "category": "Media Access",
+      "data_type": "Media such as images, files, audio and video associated with interactions with Google services",
+      "purpose": "Service functionality",
+      "source": "privacy_policy"
+    },
+    {
+      "category": "Microphone",
+      "data_type": "Voice and audio information when applicable features are used",
+      "purpose": "Voice-enabled features",
+      "source": "privacy_policy"
+    },
+    {
+      "category": "Financial Information",
+      "data_type": "Payment information and purchase activity",
+      "purpose": "Purchases and transactions for Google services",
+      "source": "privacy_policy"
+    }
+  ],
+  "tracking": {
+    "advertising_libraries": false,
+    "third_party_tracking": true,
+    "analytics": true
+  }
+}

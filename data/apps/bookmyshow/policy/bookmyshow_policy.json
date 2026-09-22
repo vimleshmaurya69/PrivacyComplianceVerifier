@@ -1,0 +1,27 @@
+{
+  "app_name": "BookMyShow",
+  "policy_available": true,
+
+  "policy_sources": [
+    "https://bookmyshow.com/privacy"
+  ],
+
+  "declared_categories": [
+    "Personal Information",
+    "Authentication",
+    "Payment Information",
+    "Search",
+    "Usage Data",
+    "Location",
+    "Device Information",
+    "Device Identifier",
+    "Network Information",
+    "Media Access",
+    "Cookies"
+  ],
+
+  "tracking": {
+    "advertising_libraries": true,
+    "third_party_tracking": true
+  }
+}

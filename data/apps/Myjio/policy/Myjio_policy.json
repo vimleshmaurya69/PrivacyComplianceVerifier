@@ -1,0 +1,30 @@
+{
+  "app_name": "MyJio",
+  "policy_sources": [
+    {
+      "title": "MyJio Privacy Policy",
+      "url": "https://www.jio.com/jcms/en-in/myjio-privacy-policy/"
+    },
+    {
+      "title": "MyJio App Terms & Conditions",
+      "url": "https://www.jio.com/jcms/en-in/myjioapp-terms/"
+    }
+  ],
+  "declared_categories": [
+    "Personal Information",
+    "Authentication",
+    "Device Information",
+    "Device Identifier",
+    "Location",
+    "Network Information",
+    "Usage Data",
+    "Contacts",
+    "Media Access",
+    "Cookies",
+    "Payment Information"
+  ],
+  "tracking": {
+    "advertising_libraries": true,
+    "third_party_tracking": true
+  }
+}

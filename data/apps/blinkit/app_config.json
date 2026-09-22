@@ -1,0 +1,41 @@
+{
+  "app_name": "Blinkit",
+  "package_name": "com.grofers.customerapp",
+  "application_services": [
+    "api2.grofers.com",
+    "api3.blinkit.com",
+    "jumbo.blinkit.com",
+    "cdn.grofers.com",
+    "cdn-brands.blinkit.com",
+    "seller.blinkit.com"
+  ],
+  "third_party_services": [
+    "app-measurement.com",
+    "firebase-settings.crashlytics.com",
+    "firebaseinstallations.googleapis.com",
+    "firebaseremoteconfig.googleapis.com",
+    "dii8cp-launches.appsflyersdk.com",
+    "dii8cp-inapps.appsflyersdk.com",
+    "dii8cp-cdn-settings.appsflyersdk.com",
+    "dii8cp-dlsdk.appsflyersdk.com",
+    "dii8cp-conversions.appsflyersdk.com",
+    "dii8cp-attr.appsflyersdk.com",
+    "dii8cp-register.appsflyersdk.com",
+    "dii8cp-pia.appsflyersdk.com",
+    "pagead2.googlesyndication.com",
+    "play.googleapis.com",
+    "android.googleapis.com",
+    "android.apis.google.com",
+    "play-fe.googleapis.com",
+    "optimizationguide-pa.googleapis.com",
+    "geller-pa.googleapis.com",
+    "www.googleapis.com",
+    "update.googleapis.com",
+    "zpay.zomato.com",
+    "b.zmtcdn.com",
+    "jumbo.zomato.com",
+    "lumberjack.razorpay.com"
+  ],
+  "har_file": "har/blinkit.har",
+  "policy_file": "policy/blinkit_policy.json"
+}
