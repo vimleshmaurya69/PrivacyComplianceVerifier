@@ -417,7 +417,7 @@ class SensitiveDataDetector:
         # Device identifiers
         device_id_keys = {
             "device_id", "deviceid", "android_id", "androidid",
-            "advertising_id", "advertisingid", "ad_id", "adid",
+            "advertising_id", "advertisingid", "ad_id", "adid", "datr",
         }
         if key_candidates & device_id_keys:
             return "Device ID"
@@ -738,6 +738,41 @@ class SensitiveDataDetector:
     # gRPC / protobuf analysis
     # --------------------------------------------------
 
+    def _iter_grpc_messages(self, body: bytes):
+        """Yield every complete protobuf message carried by a gRPC payload."""
+        offset = 0
+        yielded = False
+
+        while offset + 5 <= len(body):
+            compressed = body[offset]
+            message_length = int.from_bytes(body[offset + 1:offset + 5], "big")
+            end = offset + 5 + message_length
+
+            if compressed not in {0, 1} or end > len(body):
+                break
+
+            message = body[offset + 5:end]
+            offset = end
+
+            if compressed:
+                # gRPC commonly uses gzip.  Some captures label deflate
+                # payloads equivalently, so accept either successful decode.
+                try:
+                    message = gzip.decompress(message)
+                except Exception:
+                    try:
+                        message = zlib.decompress(message)
+                    except Exception:
+                        continue
+
+            yielded = True
+            yield message
+
+        if not yielded:
+            # Preserve the existing best-effort behavior for non-framed or
+            # malformed protobuf bodies.
+            yield body
+
     def _analyze_grpc_body(self, body, findings, source="gRPC Body"):
 
         if not body:
@@ -758,38 +793,42 @@ class SensitiveDataDetector:
 
             return
 
-        strings = ProtobufScanner.extract_strings(body_bytes)
+        for message in self._iter_grpc_messages(body_bytes):
+            # ProtobufScanner expects a gRPC envelope; wrap each individual
+            # message so every frame is parsed independently.
+            frame = b"\x00" + len(message).to_bytes(4, "big") + message
+            strings = ProtobufScanner.extract_strings(frame)
 
-        for value in strings:
+            for value in strings:
 
-            # --------------------------------------
-            # Email
-            # --------------------------------------
+                # --------------------------------------
+                # Email
+                # --------------------------------------
 
-            emails = self._find_emails(value)
+                emails = self._find_emails(value)
 
-            for email in emails:
+                for email in emails:
 
-                findings.append(
-                    self.create_finding("Email", source, "protobuf_string", email)
-                )
-
-            # --------------------------------------
-            # Phone
-            # --------------------------------------
-
-            # Do not classify arbitrary numeric protobuf strings as phones.
-            # Only accept explicitly formatted international numbers here.
-            for phone in re.findall(r"\+\d[\d .()\-]{8,14}\d", str(value)):
-                if self._is_phone_number(phone):
                     findings.append(
-                        self.create_finding(
-                            "Phone",
-                            source,
-                            "protobuf_string",
-                            phone,
-                        )
+                        self.create_finding("Email", source, "protobuf_string", email)
                     )
+
+                # --------------------------------------
+                # Phone
+                # --------------------------------------
+
+                # Do not classify arbitrary numeric protobuf strings as phones.
+                # Only accept explicitly formatted international numbers here.
+                for phone in re.findall(r"\+\d[\d .()\-]{8,14}\d", str(value)):
+                    if self._is_phone_number(phone):
+                        findings.append(
+                            self.create_finding(
+                                "Phone",
+                                source,
+                                "protobuf_string",
+                                phone,
+                            )
+                        )
 
     # --------------------------------------------------
     # Body analysis
@@ -878,7 +917,7 @@ class SensitiveDataDetector:
         session_cookie_keys = {
             "session", "session_id", "sessionid", "session_token",
             "sessiontoken", "reddit_session", "seeker_session",
-            "session_tracker",
+            "session_tracker", "xs",
         }
 
         for request_index, request in enumerate(self.requests):

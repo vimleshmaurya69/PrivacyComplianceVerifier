@@ -7,6 +7,7 @@ Credentials are generated per test and have no association with any service.
 """
 
 import base64
+import gzip
 import json
 import secrets
 import unittest
@@ -155,6 +156,14 @@ class SensitiveDataRegressions(unittest.TestCase):
             message = bytes([0x0A, len(data)]) + data
             return b"\x00" + len(message).to_bytes(4, "big") + message
         body = (frame("ordinary") + frame(EMAIL)).decode("latin-1")
+        self.assert_artifact(request(body=body, body_type="grpc"),
+                             "Email", "Personal Information", EMAIL, "gRPC Body")
+
+    def test_grpc_compressed_frame_email(self):
+        data = EMAIL.encode("utf-8")
+        message = bytes([0x0A, len(data)]) + data
+        compressed = gzip.compress(message)
+        body = (b"\x01" + len(compressed).to_bytes(4, "big") + compressed).decode("latin-1")
         self.assert_artifact(request(body=body, body_type="grpc"),
                              "Email", "Personal Information", EMAIL, "gRPC Body")
 
