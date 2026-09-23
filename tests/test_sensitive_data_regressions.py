@@ -196,6 +196,21 @@ class SensitiveDataRegressions(unittest.TestCase):
         self.assert_clean(request(cookies={"theme": "dark", "locale": "en-US"},
                                   response_cookies={"theme": "light"}))
 
+    def test_lossless_header_and_body_parameter_pairs_are_consumed(self):
+        """Detector uses Phase-1 pairs when compatibility dictionaries are lossy."""
+        sample = request(
+            headers={"X-Trace": "ordinary"},
+            header_pairs=[("X-Trace", "ordinary"), ("X-CSRF-Token", credential())],
+            body_param_pairs=[("phone", PHONE)],
+        )
+        detector = SensitiveDataDetector([sample])
+        detector.analyze()
+        PrivacyNormalizer([sample]).normalize()
+
+        self.assertEqual({"CSRF Token", "Phone"}, {
+            finding["type"] for finding in sample.sensitive_data
+        })
+
     def test_control_benign_multipart(self):
         self.assert_clean(multipart([("theme", "dark"), ("count", "1234567890")]))
 

@@ -19,16 +19,24 @@ class Request:
     mime_type: str
 
     headers: Dict[str, str] = field(default_factory=dict)
+    # Ordered pairs retain duplicate HAR fields; the dictionaries above/below
+    # remain compatibility views for existing consumers.
+    header_pairs: List[tuple[str, str]] = field(default_factory=list)
     query_params: Dict[str, str] = field(default_factory=dict)
     query_param_pairs: list[tuple[str, str]] = field(default_factory=list)
+    query_param_values: Dict[str, List[str]] = field(default_factory=dict)
     body: Optional[str] = None
+    body_param_pairs: List[tuple[str, str]] = field(default_factory=list)
     cookies: Dict[str, str] = field(default_factory=dict)
+    cookie_pairs: List[tuple[str, str]] = field(default_factory=list)
 
     # -----------------------------
     # Response information
     # -----------------------------
     response_headers: Dict[str, str] = field(default_factory=dict)
+    response_header_pairs: List[tuple[str, str]] = field(default_factory=list)
     response_cookies: Dict[str, str] = field(default_factory=dict)
+    response_cookie_pairs: List[tuple[str, str]] = field(default_factory=list)
     response_body: Optional[str] = None
 
     # Response body metadata

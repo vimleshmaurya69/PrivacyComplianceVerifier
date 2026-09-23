@@ -1,4 +1,4 @@
-from urllib.parse import parse_qs, parse_qsl, urlparse
+from urllib.parse import parse_qsl, urlparse
 from typing import List
 
 from src.models.request import Request
@@ -70,40 +70,75 @@ class RequestExtractor:
     # ---------------------------------------------------------
     # Header extraction
     # ---------------------------------------------------------
-    def _extract_headers(self, headers: list) -> dict:
+    def _extract_headers(self, headers: list):
         """
-        Convert HAR header list into a dictionary.
+        Return a compatibility dictionary and ordered name/value pairs.
+
+        HAR permits repeated header names (notably Set-Cookie).  The
+        dictionary preserves the historical last-value behaviour, while the
+        pairs preserve every original occurrence.
         """
 
         result = {}
+        pairs = []
 
         for header in headers or []:
             name = header.get("name", "")
             value = header.get("value", "")
 
             if name:
+                pairs.append((name, value))
                 result[name] = value
 
-        return result
+        return result, pairs
 
     # ---------------------------------------------------------
     # Cookie extraction
     # ---------------------------------------------------------
-    def _extract_cookies(self, cookies: list) -> dict:
+    def _extract_cookies(self, cookies: list):
         """
-        Convert HAR cookie list into a dictionary.
+        Return a compatibility dictionary and ordered name/value pairs.
         """
 
         result = {}
+        pairs = []
 
         for cookie in cookies or []:
             name = cookie.get("name", "")
             value = cookie.get("value", "")
 
             if name:
+                pairs.append((name, value))
                 result[name] = value
 
-        return result
+        return result, pairs
+
+    def _extract_raw_cookies(self, header_pairs, response=False):
+        """Extract cookies from Cookie/Set-Cookie headers when HAR omits them."""
+        result = {}
+        pairs = []
+        target = "set-cookie" if response else "cookie"
+
+        for header_name, header_value in header_pairs:
+            if str(header_name).lower() != target:
+                continue
+
+            value = str(header_value or "")
+            if response:
+                # Each Set-Cookie header begins with its cookie name/value;
+                # do not split on commas because Expires may contain one.
+                cookie_parts = [value.split(";", 1)[0]]
+            else:
+                cookie_parts = value.split(";")
+
+            for part in cookie_parts:
+                name, separator, cookie_value = part.strip().partition("=")
+                if not separator or not name:
+                    continue
+                pairs.append((name, cookie_value))
+                result[name] = cookie_value
+
+        return result, pairs
 
     # ---------------------------------------------------------
     # Request body extraction
@@ -114,6 +149,7 @@ class RequestExtractor:
         """
 
         body = None
+        body_param_pairs = []
         body_encoding = None
         content_type = ""
 
@@ -121,6 +157,14 @@ class RequestExtractor:
 
         if post_data:
             body = post_data.get("text")
+
+            if body is None:
+                for param in post_data.get("params", []) or []:
+                    if not isinstance(param, dict):
+                        continue
+                    name = param.get("name", "")
+                    if name:
+                        body_param_pairs.append((name, param.get("value", "")))
 
             body_encoding = post_data.get(
                 "encoding"
@@ -149,6 +193,7 @@ class RequestExtractor:
 
         return (
             body,
+            body_param_pairs,
             body_encoding,
             content_type,
             body_type,
@@ -233,46 +278,39 @@ class RequestExtractor:
             # -------------------------------------------------
             # Request Headers
             # -------------------------------------------------
-            headers = self._extract_headers(
+            headers, header_pairs = self._extract_headers(
                 request.get("headers", [])
             )
 
             # -------------------------------------------------
             # Request Cookies
             # -------------------------------------------------
-            cookies = self._extract_cookies(
+            cookies, cookie_pairs = self._extract_cookies(
                 request.get("cookies", [])
             )
+            if not cookie_pairs:
+                cookies, cookie_pairs = self._extract_raw_cookies(header_pairs)
 
             # -------------------------------------------------
             # Query Parameters
             # -------------------------------------------------
             query_params = {}
-
-            parsed_query = parse_qs(
-                parsed_url.query,
-                keep_blank_values=True
-            )
-
-            for key, value in parsed_query.items():
-                query_params[key] = (
-                    value[0]
-                    if value
-                    else ""
-                )
-
-            # Preserve every query parameter occurrence,
-            # including duplicate parameters.
             query_param_pairs = parse_qsl(
                 parsed_url.query,
                 keep_blank_values=True
             )
+            query_param_values = {}
+            for key, value in query_param_pairs:
+                query_param_values.setdefault(key, []).append(value)
+                # Preserve the historical first-value dictionary view.
+                query_params.setdefault(key, value)
 
             # -------------------------------------------------
             # Request Body
             # -------------------------------------------------
             (
                 body,
+                body_param_pairs,
                 body_encoding,
                 content_type,
                 body_type,
@@ -284,16 +322,20 @@ class RequestExtractor:
             # -------------------------------------------------
             # Response Headers
             # -------------------------------------------------
-            response_headers = self._extract_headers(
+            response_headers, response_header_pairs = self._extract_headers(
                 response.get("headers", [])
             )
 
             # -------------------------------------------------
             # Response Cookies
             # -------------------------------------------------
-            response_cookies = self._extract_cookies(
+            response_cookies, response_cookie_pairs = self._extract_cookies(
                 response.get("cookies", [])
             )
+            if not response_cookie_pairs:
+                response_cookies, response_cookie_pairs = self._extract_raw_cookies(
+                    response_header_pairs, response=True
+                )
 
             # -------------------------------------------------
             # Response Body
@@ -327,14 +369,20 @@ class RequestExtractor:
                 ),
 
                 headers=headers,
+                header_pairs=header_pairs,
                 query_params=query_params,
                 query_param_pairs=query_param_pairs,
+                query_param_values=query_param_values,
                 body=body,
+                body_param_pairs=body_param_pairs,
                 cookies=cookies,
+                cookie_pairs=cookie_pairs,
 
                 # Response
                 response_headers=response_headers,
+                response_header_pairs=response_header_pairs,
                 response_cookies=response_cookies,
+                response_cookie_pairs=response_cookie_pairs,
                 response_body=response_body,
 
                 response_body_type=response_body_type,

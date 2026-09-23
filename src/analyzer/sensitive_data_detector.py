@@ -335,12 +335,25 @@ class SensitiveDataDetector:
     def _classify_key_value(self, key, value):
 
         normalized_key = self._normalize_key(key)
+        key_candidates = {normalized_key}
+
+        # JSON paths retain useful evidence context (for example,
+        # profile.device_id).  Classification must still consider the leaf
+        # field name rather than only the complete path.
+        raw_key = str(key)
+        path_parts = [part for part in re.split(r"[.\[\]]+", raw_key) if part]
+        if path_parts:
+            key_candidates.add(self._normalize_key(path_parts[-1]))
+
+        # Common HTTP header aliases prefix an otherwise known field with X-.
+        if normalized_key.startswith("x_"):
+            key_candidates.add(normalized_key[2:])
 
         # Email
         email_keys = {
             "email", "email_address", "user_email", "useremail", "mail",
         }
-        if normalized_key in email_keys or self._is_email(value):
+        if key_candidates & email_keys or self._is_email(value):
             return "Email"
 
         # Phone/contact fields.  Plain numeric values require explicit field
@@ -352,7 +365,7 @@ class SensitiveDataDetector:
             "contact_point", "contactpoint", "msisdn", "caller",
             "caller_number", "recipient", "recipient_number",
         }
-        if normalized_key in phone_keys and self._is_phone_number(value):
+        if key_candidates & phone_keys and self._is_phone_number(value):
             return "Phone"
 
         # Facebook/other platform user identifiers. These are identifiers of
@@ -361,18 +374,27 @@ class SensitiveDataDetector:
             "user_id", "userid", "user_identifier", "useridentifier",
             "user", "c_user", "i_user", "account_id", "accountid",
         }
-        if normalized_key in user_id_keys:
+        if key_candidates & user_id_keys:
             text = str(value).strip() if value is not None else ""
             if text and len(text) <= 128:
                 return "User ID"
 
         # Location
-        if normalized_key in {"lat", "latitude"}:
+        if key_candidates & {"lat", "latitude"}:
             return "Latitude"
-        if normalized_key in {"lon", "lng", "longitude"}:
+        if key_candidates & {"lon", "lng", "longitude"}:
             return "Longitude"
 
-        if self._looks_like_api_key(key, value):
+        if key_candidates & {"name", "full_name", "fullname", "first_name", "last_name"}:
+            return "Name"
+        if key_candidates & {"date_of_birth", "dateofbirth", "dob", "birth_date"}:
+            return "Date of Birth"
+        if key_candidates & {"address", "street_address", "postal_address"}:
+            return "Address"
+        if key_candidates & {"ip_address", "ipaddress", "ip"}:
+            return "IP Address"
+
+        if any(self._looks_like_api_key(candidate, value) for candidate in key_candidates):
             return "API Key"
 
         # Authentication tokens. Keep Authorization Token taxonomy intact.
@@ -381,7 +403,7 @@ class SensitiveDataDetector:
             "accesstoken", "refresh_token", "refreshtoken",
             "bearer_token", "bearertoken", "token", "token_v2",
         }
-        if normalized_key in auth_keys:
+        if key_candidates & auth_keys:
             return "Authorization Token"
 
         # CSRF/security tokens are distinct from authentication credentials.
@@ -389,7 +411,7 @@ class SensitiveDataDetector:
             "csrf_token", "csrftoken", "csrf", "fb_dtsg", "dtsg",
             "xsrf_token", "xsrftoken", "xsrf",
         }
-        if normalized_key in csrf_keys:
+        if key_candidates & csrf_keys:
             return "CSRF Token"
 
         # Device identifiers
@@ -397,7 +419,7 @@ class SensitiveDataDetector:
             "device_id", "deviceid", "android_id", "androidid",
             "advertising_id", "advertisingid", "ad_id", "adid",
         }
-        if normalized_key in device_id_keys:
+        if key_candidates & device_id_keys:
             return "Device ID"
 
         return None
@@ -548,7 +570,9 @@ class SensitiveDataDetector:
         for enc in reversed(encodings):
             current = candidates[-1]
             try:
-                if enc in {"gzip", "x-gzip"}:
+                if enc == "base64":
+                    candidates.append(base64.b64decode(current, validate=True))
+                elif enc in {"gzip", "x-gzip"}:
                     candidates.append(gzip.decompress(current))
                 elif enc == "deflate":
                     try:
@@ -771,8 +795,10 @@ class SensitiveDataDetector:
     # Body analysis
     # --------------------------------------------------
 
-    def _analyze_body(self, body, findings, body_type=None, source="Request Body", content_type=None, content_encoding=None):
-        if not body:
+    def _analyze_body(self, body, findings, body_type=None, source="Request Body", content_type=None,
+                      content_encoding=None, body_param_pairs=None):
+        body_param_pairs = list(body_param_pairs or [])
+        if not body and not body_param_pairs:
             return
 
         # Avoid pathological payloads while still allowing normal HAR bodies.
@@ -783,16 +809,20 @@ class SensitiveDataDetector:
         if body_length > 8 * 1024 * 1024:
             return
 
-        decoded_body = self._decode_body(body, content_type, content_encoding)
-        if decoded_body is None:
-            return
+        decoded_body = ""
+        if body:
+            decoded_body = self._decode_body(body, content_type, content_encoding)
+            if decoded_body is None:
+                return
 
         if body_type == "grpc":
             self._analyze_grpc_body(decoded_body, findings,
                                     "gRPC Body" if source == "Request Body" else "Response gRPC Body")
             return
 
-        body_pairs = self._extract_body_pairs(decoded_body, body_type, content_type)
+        body_pairs = body_param_pairs + self._extract_body_pairs(
+            decoded_body, body_type, content_type
+        )
         for key, value in body_pairs:
             finding_type = self._classify_key_value(key, value)
             if finding_type:
@@ -896,7 +926,10 @@ class SensitiveDataDetector:
                                     f.get("_raw_value"), "outbound")
 
                 # Headers: all header names, not only Authorization.
-                for key, value in (getattr(request, "headers", {}) or {}).items():
+                request_header_pairs = list(
+                    getattr(request, "header_pairs", []) or []
+                ) or list((getattr(request, "headers", {}) or {}).items())
+                for key, value in request_header_pairs:
                     finding_type = self._classify_key_value(key, value)
                     if self._normalize_key(key) == "authorization":
                         finding_type = "Authorization Token"
@@ -909,7 +942,10 @@ class SensitiveDataDetector:
                                     f.get("_raw_value"), "outbound")
 
                 # Cookies: all cookie names plus session-cookie heuristic.
-                for key, value in (getattr(request, "cookies", {}) or {}).items():
+                request_cookie_pairs = list(
+                    getattr(request, "cookie_pairs", []) or []
+                ) or list((getattr(request, "cookies", {}) or {}).items())
+                for key, value in request_cookie_pairs:
                     normalized = self._normalize_key(key)
                     finding_type = "Session Cookie" if (
                         normalized in session_cookie_keys or "session" in normalized
@@ -928,14 +964,19 @@ class SensitiveDataDetector:
                     getattr(request, "body", None), body_findings,
                     getattr(request, "body_type", None), "Request Body",
                     getattr(request, "content_type", None),
-                    self._header_value(getattr(request, "headers", {}), "content-encoding")
+                    getattr(request, "body_encoding", None)
+                    or self._header_value(getattr(request, "headers", {}), "content-encoding"),
+                    getattr(request, "body_param_pairs", [])
                 )
                 for f in body_findings:
                     add_finding(f.get("type"), f.get("source"), f.get("key"),
                                 f.get("_raw_value"), "outbound")
 
                 # Response headers
-                for key, value in (getattr(request, "response_headers", {}) or {}).items():
+                response_header_pairs = list(
+                    getattr(request, "response_header_pairs", []) or []
+                ) or list((getattr(request, "response_headers", {}) or {}).items())
+                for key, value in response_header_pairs:
                     finding_type = self._classify_key_value(key, value)
                     if self._normalize_key(key) == "authorization":
                         finding_type = "Authorization Token"
@@ -948,7 +989,10 @@ class SensitiveDataDetector:
                                     f.get("_raw_value"), "inbound")
 
                 # Response cookies
-                for key, value in (getattr(request, "response_cookies", {}) or {}).items():
+                response_cookie_pairs = list(
+                    getattr(request, "response_cookie_pairs", []) or []
+                ) or list((getattr(request, "response_cookies", {}) or {}).items())
+                for key, value in response_cookie_pairs:
                     normalized = self._normalize_key(key)
                     finding_type = "Session Cookie" if (
                         normalized in session_cookie_keys or "session" in normalized
@@ -967,7 +1011,8 @@ class SensitiveDataDetector:
                     getattr(request, "response_body", None), response_findings,
                     getattr(request, "response_body_type", None), "Response Body",
                     getattr(request, "response_content_type", None),
-                    self._header_value(getattr(request, "response_headers", {}), "content-encoding")
+                    getattr(request, "response_body_encoding", None)
+                    or self._header_value(getattr(request, "response_headers", {}), "content-encoding")
                 )
                 for f in response_findings:
                     add_finding(f.get("type"), f.get("source"), f.get("key"),
