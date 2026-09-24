@@ -1,6 +1,12 @@
 import json
 import os
 
+from src.comparator.semantic_category_mapping import (
+    NON_COMPARABLE_OBSERVED_CATEGORIES,
+    comparable_policy_categories,
+    policy_category_for_observed,
+)
+
 
 class PolicyComparator:
 
@@ -60,6 +66,58 @@ class PolicyComparator:
 
         return categories
 
+    def get_comparable_observed_categories(self):
+        """Return only observed categories approved for semantic comparison."""
+        raw_observed = (
+            self.get_observed_categories()
+            | self.get_frida_categories()
+        )
+        return comparable_policy_categories(raw_observed)
+
+    def get_observed_evidence(self, policy_category):
+        """Return HAR evidence whose observed category exactly maps to a policy category."""
+        evidence = []
+
+        for data in self.observed_inventory.values():
+            for finding in data.get("evidence", []):
+                if not isinstance(finding, dict):
+                    continue
+
+                observed_category = finding.get("privacy_category")
+                if policy_category_for_observed(observed_category) != policy_category:
+                    continue
+
+                evidence.append({
+                    "observed_category": observed_category,
+                    "artifact_type": finding.get("type"),
+                    "source": finding.get("source"),
+                    "direction": finding.get("direction"),
+                    "key": finding.get("key"),
+                    "domain": finding.get("domain"),
+                })
+
+        return evidence
+
+    def get_excluded_observed_evidence(self):
+        """Expose non-comparable runtime evidence without assigning a compliance status."""
+        evidence = []
+
+        for data in self.observed_inventory.values():
+            for finding in data.get("evidence", []):
+                if not isinstance(finding, dict):
+                    continue
+                if finding.get("privacy_category") in NON_COMPARABLE_OBSERVED_CATEGORIES:
+                    evidence.append({
+                        "observed_category": finding.get("privacy_category"),
+                        "artifact_type": finding.get("type"),
+                        "source": finding.get("source"),
+                        "direction": finding.get("direction"),
+                        "key": finding.get("key"),
+                        "domain": finding.get("domain"),
+                    })
+
+        return evidence
+
     # --------------------------------------------------
     # Extract declared privacy categories
     # --------------------------------------------------
@@ -105,7 +163,7 @@ class PolicyComparator:
         har_observed = self.get_observed_categories()
         frida_observed = self.get_frida_categories()
 
-        observed = har_observed | frida_observed
+        observed = comparable_policy_categories(har_observed | frida_observed)
         declared = self.get_declared_categories()
 
         all_categories = sorted(
@@ -116,10 +174,11 @@ class PolicyComparator:
 
         for category in all_categories:
 
-            is_har_observed = category in har_observed
-            is_frida_observed = category in frida_observed
+            is_har_observed = category in comparable_policy_categories(har_observed)
+            is_frida_observed = category in comparable_policy_categories(frida_observed)
             is_observed = category in observed
             is_declared = category in declared
+            observed_evidence = self.get_observed_evidence(category) if is_observed else []
 
             if is_observed and is_declared:
 
@@ -179,7 +238,8 @@ class PolicyComparator:
                 "observed_frida": is_frida_observed,
                 "declared": is_declared,
                 "status": status,
-                "explanation": explanation
+                "explanation": explanation,
+                "observed_evidence": observed_evidence,
             })
 
         return results
