@@ -26,6 +26,7 @@ class PrivacyInventoryGenerator:
                     "request_count": 0,
                     "domains": set(),
                     "privacy_categories": set(),
+                    "evidence": [],
                 }
 
             section = inventory[traffic_type]
@@ -41,6 +42,14 @@ class PrivacyInventoryGenerator:
 
                 if category:
                     section["privacy_categories"].add(category)
+                    section["evidence"].append({
+                        "type": finding.get("type"),
+                        "privacy_category": category,
+                        "source": finding.get("source"),
+                        "direction": finding.get("direction"),
+                        "key": finding.get("key"),
+                        "domain": finding.get("domain", request.domain),
+                    })
 
         # Convert sets into sorted lists for JSON serialization
         for section in inventory.values():
