@@ -385,8 +385,32 @@ class SensitiveDataDetector:
         if key_candidates & {"lon", "lng", "longitude"}:
             return "Longitude"
 
-        if key_candidates & {"name", "full_name", "fullname", "first_name", "last_name"}:
+        # Explicit personal-name fields are unambiguous enough to recognize at
+        # any nesting depth. A bare nested `name` is ambiguous (for example,
+        # config.name or error.name), so require person-related path context.
+        if key_candidates & {"full_name", "fullname", "first_name", "last_name"}:
             return "Name"
+
+        leaf_key = (
+            self._normalize_key(path_parts[-1])
+            if path_parts
+            else normalized_key
+        )
+        if leaf_key == "name":
+            if len(path_parts) <= 1:
+                return "Name"
+
+            personal_contexts = {
+                "person", "profile", "user", "customer", "contact",
+                "member", "passenger", "attendee", "recipient",
+            }
+            parent_contexts = {
+                self._normalize_key(part)
+                for part in path_parts[:-1]
+            }
+            if parent_contexts & personal_contexts:
+                return "Name"
+
         if key_candidates & {"date_of_birth", "dateofbirth", "dob", "birth_date"}:
             return "Date of Birth"
         if key_candidates & {"address", "street_address", "postal_address"}:

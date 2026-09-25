@@ -142,6 +142,50 @@ class SensitiveDataRegressions(unittest.TestCase):
         self.assert_artifact(request(body=json.dumps({"phone": [PHONE]})),
                              "Phone", "Personal Information", PHONE, "Request Body")
 
+    def test_top_level_name_remains_personal_information(self):
+        value = "Synthetic Person"
+        self.assert_artifact(
+            request(body=json.dumps({"name": value})),
+            "Name", "Personal Information", value, "Request Body", key="name"
+        )
+
+    def test_nested_name_requires_person_context(self):
+        value = "Synthetic Person"
+        cases = [
+            ({"profile": {"name": value}}, "profile.name"),
+            ({"events": [{"user": {"name": value}}]}, "events[0].user.name"),
+        ]
+        for body, key in cases:
+            with self.subTest(key=key):
+                self.assert_artifact(
+                    request(body=json.dumps(body)),
+                    "Name", "Personal Information", value, "Request Body", key=key
+                )
+
+    def test_explicit_nested_name_aliases_remain_supported(self):
+        value = "Synthetic Person"
+        for field in ("full_name", "fullname", "first_name", "last_name"):
+            with self.subTest(field=field):
+                self.assert_artifact(
+                    request(body=json.dumps({"profile": {field: value}})),
+                    "Name", "Personal Information", value, "Request Body",
+                    key=f"profile.{field}"
+                )
+
+    def test_non_person_nested_names_are_clean(self):
+        value = "Synthetic Person"
+        cases = [
+            {"feature_gates": {"13203271": {"name": value}}},
+            {"metadata": {"markers": [{"error": {"name": value}}]}},
+            {"items": [{"name": value}]},
+            {"config": {"name": value}},
+            {"event": {"name": value}},
+            {"venue": {"name": value}},
+        ]
+        for body in cases:
+            with self.subTest(body=body):
+                self.assert_clean(request(body=json.dumps(body)))
+
     def test_html_visible_email_is_not_discarded_with_inline_script(self):
         """Response JavaScript heuristic drops the entire HTML document."""
         body = ('<html><script>function ready(){var flag=1;return flag;}</script>'
