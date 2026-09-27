@@ -345,6 +345,16 @@ class SensitiveDataDetector:
         if path_parts:
             key_candidates.add(self._normalize_key(path_parts[-1]))
 
+            # Array paths end in a numeric index (for example,
+            # device_id[0]). Preserve the nearest exact field segment without
+            # treating arbitrary ancestors or substrings as aliases.
+            if self._normalize_key(path_parts[-1]).isdigit():
+                for part in reversed(path_parts[:-1]):
+                    candidate = self._normalize_key(part)
+                    if candidate and not candidate.isdigit():
+                        key_candidates.add(candidate)
+                        break
+
         # Common HTTP header aliases prefix an otherwise known field with X-.
         if normalized_key.startswith("x_"):
             key_candidates.add(normalized_key[2:])
@@ -552,7 +562,7 @@ class SensitiveDataDetector:
 
             try:
                 decoded_json = json.loads(decoded)
-            except (json.JSONDecodeError, TypeError, ValueError):
+            except (json.JSONDecodeError, TypeError, ValueError, RecursionError):
                 decoded_json = None
 
             if isinstance(decoded_json, (dict, list)):
@@ -615,6 +625,45 @@ class SensitiveDataDetector:
             except Exception:
                 return None
 
+    @staticmethod
+    def _normalized_media_type(content_type):
+        """Return the lower-case MIME type without parameters."""
+        return str(content_type or "").split(";", 1)[0].strip().lower()
+
+    def _decode_body_bytes(self, body, content_encoding=None):
+        """Decode HAR/HTTP body encodings without converting payload bytes to text."""
+        if body is None:
+            return None
+
+        encoding = (content_encoding or "").lower()
+        encodings = [item.strip() for item in encoding.split(",") if item.strip()]
+
+        try:
+            if isinstance(body, bytes):
+                decoded = body
+            elif "base64" in encodings:
+                decoded = str(body).encode("ascii")
+            else:
+                decoded = str(body).encode("latin-1")
+        except (UnicodeEncodeError, TypeError, ValueError):
+            return None
+
+        for item in reversed(encodings):
+            try:
+                if item == "base64":
+                    decoded = base64.b64decode(decoded, validate=True)
+                elif item in {"gzip", "x-gzip"}:
+                    decoded = gzip.decompress(decoded)
+                elif item == "deflate":
+                    try:
+                        decoded = zlib.decompress(decoded)
+                    except zlib.error:
+                        decoded = zlib.decompress(decoded, -zlib.MAX_WBITS)
+            except Exception:
+                return None
+
+        return decoded
+
     def _extract_json_pairs(self, data, parent_key="", depth=0, max_depth=32,
                             max_pairs=10000):
         if depth > max_depth:
@@ -644,98 +693,221 @@ class SensitiveDataDetector:
                     pairs.append((current_key, value))
         return pairs
 
+    def _analyze_structured_json_value(self, value, findings, source, parent_key):
+        """Analyze one explicitly JSON-shaped carrier value without recursion."""
+        if not isinstance(value, str) or len(value) > 1024 * 1024:
+            return
+
+        text = value.lstrip()
+        if not text.startswith(("{", "[")):
+            return
+
+        try:
+            parsed = json.loads(text)
+        except (json.JSONDecodeError, TypeError, ValueError, RecursionError):
+            return
+
+        if not isinstance(parsed, (dict, list)):
+            return
+
+        for nested_key, nested_value in self._extract_json_pairs(parsed, str(parent_key)):
+            nested_type = self._classify_key_value(nested_key, nested_value)
+            if nested_type:
+                findings.append(self.create_finding(
+                    nested_type, source, nested_key, nested_value
+                ))
+
+            self._analyze_text_signals(
+                nested_value, findings, source, nested_key
+            )
+
     # --------------------------------------------------
     # Structured body extraction
     # --------------------------------------------------
+
+    @staticmethod
+    def _extract_multipart_boundary(content_type):
+        """Extract an exact, bounded MIME boundary parameter."""
+        match = re.search(
+            r'(?:^|;)\s*boundary\s*=\s*'
+            r'(?:(?:"([^"\r\n]+)")|([^;"\s\r\n]+))\s*(?=;|$)',
+            str(content_type or ""),
+            re.IGNORECASE,
+        )
+        if not match:
+            return None
+
+        boundary = (match.group(1) or match.group(2) or "").strip()
+        if not boundary or len(boundary) > 200:
+            return None
+
+        return boundary
 
     def _extract_multipart_pairs(self, body, content_type):
         """Extract text fields from a multipart/form-data body."""
         if not body or not content_type:
             return []
 
-        match = re.search(
-            r'boundary=(?:"([^"]+)"|([^;]+))',
-            content_type,
-            re.IGNORECASE
-        )
-
-        if not match:
-            return []
-
-        boundary = match.group(1) or match.group(2)
-        boundary = boundary.strip()
-
-        if not boundary:
-            return []
-
-        delimiter = "--" + boundary
-        parts = str(body).split(delimiter)
-
         pairs = []
 
-        for part in parts:
-            part = part.strip()
-
-            if not part or part == "--":
-                continue
-
-            # Remove the final multipart terminator.
-            if part.endswith("--"):
-                part = part[:-2].rstrip()
-
-            # Headers and content are separated by a blank line.
-            if "\r\n\r\n" in part:
-                headers_text, value = part.split("\r\n\r\n", 1)
-            elif "\n\n" in part:
-                headers_text, value = part.split("\n\n", 1)
-            else:
-                continue
+        for headers, value in self._extract_multipart_container_parts(
+            body, content_type
+        ):
+            disposition = headers.get("content-disposition", "")
+            part_content_type = headers.get("content-type", "")
+            part_media_type = self._normalized_media_type(part_content_type)
 
             name_match = re.search(
                 r'(?:^|;\s*)name="([^"]+)"',
-                headers_text,
+                disposition,
                 re.IGNORECASE
             )
 
             if not name_match:
                 name_match = re.search(
                     r'(?:^|;\s*)name=([^;\r\n]+)',
-                    headers_text,
+                    disposition,
                     re.IGNORECASE
                 )
 
-            if not name_match:
-                continue
-
-            field_name = name_match.group(1).strip()
-            value = value.strip("\r\n")
-
-            # Avoid treating binary file uploads as text.
-            filename_match = re.search(
-                r'filename="[^"]*"',
-                headers_text,
+            filename_parameter = re.search(
+                r'(?:^|;)\s*filename(?:\*)?\s*(?:=|(?=;|$))',
+                disposition,
                 re.IGNORECASE
             )
 
-            if filename_match:
-                part_content_type = re.search(
-                    r'Content-Type:\s*([^\r\n]+)',
-                    headers_text,
-                    re.IGNORECASE
-                )
+            explicitly_textual = (
+                part_media_type.startswith("text/")
+                or part_media_type == "application/json"
+                or part_media_type.endswith("+json")
+                or part_media_type == "application/x-www-form-urlencoded"
+            )
 
-                if (
-                    not part_content_type
-                    or not (
-                        "text/" in part_content_type.group(1).lower()
-                        or "json" in part_content_type.group(1).lower()
-                    )
-                ):
-                    continue
+            # A declared non-text MIME type is binary regardless of whether
+            # Content-Disposition includes filename=. Undeclared named fields
+            # retain normal HTML form behavior and are treated as text.
+            if part_media_type and not explicitly_textual:
+                continue
+            if filename_parameter and not explicitly_textual:
+                continue
+
+            if name_match:
+                field_name = name_match.group(1).strip()
+            elif explicitly_textual:
+                field_name = "multipart_part"
+            else:
+                continue
 
             pairs.append((field_name, value))
 
         return pairs
+
+    def _extract_multipart_container_parts(self, body, content_type):
+        """Return bounded MIME parts for multipart/mixed or multipart/related."""
+        if not body or not content_type:
+            return []
+
+        boundary = self._extract_multipart_boundary(content_type)
+        if not boundary:
+            return []
+
+        delimiter = "--" + boundary
+        parts = []
+
+        # The complete body is already capped by _analyze_body. Bound part
+        # count and header size independently to avoid pathological MIME data.
+        for raw_part in str(body).split(delimiter)[1:257]:
+            part = raw_part.lstrip("\r\n")
+            if part.startswith("--"):
+                break
+            part = part.rstrip("\r\n")
+
+            if "\r\n\r\n" in part:
+                header_text, payload = part.split("\r\n\r\n", 1)
+            elif "\n\n" in part:
+                header_text, payload = part.split("\n\n", 1)
+            else:
+                continue
+
+            if len(header_text) > 64 * 1024:
+                continue
+
+            headers = {}
+            for line in header_text.splitlines():
+                name, separator, header_value = line.partition(":")
+                if separator and name.strip():
+                    headers[name.strip().lower()] = header_value.strip()
+
+            parts.append((headers, payload.rstrip("\r\n")))
+
+        return parts
+
+    @staticmethod
+    def _extract_embedded_http_body(part_body):
+        """Extract only an embedded HTTP entity body and its entity headers."""
+        if "\r\n\r\n" in part_body:
+            header_text, body = part_body.split("\r\n\r\n", 1)
+        elif "\n\n" in part_body:
+            header_text, body = part_body.split("\n\n", 1)
+        else:
+            return None, None, None
+
+        headers = {}
+        for line in header_text.splitlines()[1:]:
+            name, separator, value = line.partition(":")
+            if separator and name.strip():
+                headers[name.strip().lower()] = value.strip()
+
+        return body, headers.get("content-type"), headers.get("content-encoding")
+
+    def _multipart_part_body_type(self, content_type):
+        media_type = self._normalized_media_type(content_type)
+        if media_type == "application/grpc":
+            return "grpc"
+        if media_type == "application/x-protobuf":
+            return "binary"
+        if media_type == "application/x-www-form-urlencoded":
+            return "form"
+        if media_type in {"multipart/form-data", "multipart/mixed", "multipart/related"}:
+            return "multipart"
+        if media_type == "application/json" or media_type.endswith("+json"):
+            return "json"
+        if media_type.startswith("text/"):
+            return "text"
+        return None
+
+    def _analyze_multipart_container(self, body, findings, source, content_type,
+                                     multipart_depth):
+        if multipart_depth >= 4:
+            return
+
+        for headers, part_body in self._extract_multipart_container_parts(
+            body, content_type
+        ):
+            part_content_type = headers.get("content-type", "")
+            part_encoding = headers.get("content-encoding")
+
+            if self._normalized_media_type(part_content_type) == "application/http":
+                part_body, part_content_type, part_encoding = (
+                    self._extract_embedded_http_body(part_body)
+                )
+                if part_body is None or not part_content_type:
+                    continue
+
+            part_body_type = self._multipart_part_body_type(part_content_type)
+            if part_body_type is None:
+                # Unknown/binary MIME parts are deliberately not scanned.
+                continue
+
+            self._analyze_body(
+                part_body,
+                findings,
+                part_body_type,
+                source,
+                part_content_type,
+                part_encoding,
+                _multipart_depth=multipart_depth + 1,
+            )
 
     def _extract_body_pairs(self, body, body_type=None, content_type=None):
         if not body:
@@ -747,7 +919,7 @@ class SensitiveDataDetector:
             parsed = json.loads(body)
             if isinstance(parsed, (dict, list)):
                 return self._extract_json_pairs(parsed)
-        except (json.JSONDecodeError, TypeError, ValueError):
+        except (json.JSONDecodeError, TypeError, ValueError, RecursionError):
             pass
 
         try:
@@ -823,43 +995,55 @@ class SensitiveDataDetector:
             frame = b"\x00" + len(message).to_bytes(4, "big") + message
             strings = ProtobufScanner.extract_strings(frame)
 
-            for value in strings:
+            self._analyze_protobuf_strings(strings, findings, source)
 
-                # --------------------------------------
-                # Email
-                # --------------------------------------
+    def _analyze_raw_protobuf_body(self, body, findings, source="Protobuf Body"):
+        if not body:
+            return
 
-                emails = self._find_emails(value)
+        strings = ProtobufScanner.extract_raw_strings(body)
+        self._analyze_protobuf_strings(strings, findings, source)
 
-                for email in emails:
+    def _analyze_protobuf_strings(self, strings, findings, source):
+        """Detect only strong string signals exposed by the protobuf scanner."""
 
+        for value in strings:
+
+            # --------------------------------------
+            # Email
+            # --------------------------------------
+
+            emails = self._find_emails(value)
+
+            for email in emails:
+
+                findings.append(
+                    self.create_finding("Email", source, "protobuf_string", email)
+                )
+
+            # --------------------------------------
+            # Phone
+            # --------------------------------------
+
+            # Do not classify arbitrary numeric protobuf strings as phones.
+            # Only accept explicitly formatted international numbers here.
+            for phone in re.findall(r"\+\d[\d .()\-]{8,14}\d", str(value)):
+                if self._is_phone_number(phone):
                     findings.append(
-                        self.create_finding("Email", source, "protobuf_string", email)
-                    )
-
-                # --------------------------------------
-                # Phone
-                # --------------------------------------
-
-                # Do not classify arbitrary numeric protobuf strings as phones.
-                # Only accept explicitly formatted international numbers here.
-                for phone in re.findall(r"\+\d[\d .()\-]{8,14}\d", str(value)):
-                    if self._is_phone_number(phone):
-                        findings.append(
-                            self.create_finding(
-                                "Phone",
-                                source,
-                                "protobuf_string",
-                                phone,
-                            )
+                        self.create_finding(
+                            "Phone",
+                            source,
+                            "protobuf_string",
+                            phone,
                         )
+                    )
 
     # --------------------------------------------------
     # Body analysis
     # --------------------------------------------------
 
     def _analyze_body(self, body, findings, body_type=None, source="Request Body", content_type=None,
-                      content_encoding=None, body_param_pairs=None):
+                      content_encoding=None, body_param_pairs=None, _multipart_depth=0):
         body_param_pairs = list(body_param_pairs or [])
         if not body and not body_param_pairs:
             return
@@ -872,6 +1056,17 @@ class SensitiveDataDetector:
         if body_length > 8 * 1024 * 1024:
             return
 
+        if self._normalized_media_type(content_type) == "application/x-protobuf":
+            protobuf_body = self._decode_body_bytes(body, content_encoding)
+            if protobuf_body is None:
+                return
+            self._analyze_raw_protobuf_body(
+                protobuf_body,
+                findings,
+                "Protobuf Body" if source == "Request Body" else "Response Protobuf Body",
+            )
+            return
+
         decoded_body = ""
         if body:
             decoded_body = self._decode_body(body, content_type, content_encoding)
@@ -881,6 +1076,13 @@ class SensitiveDataDetector:
         if body_type == "grpc":
             self._analyze_grpc_body(decoded_body, findings,
                                     "gRPC Body" if source == "Request Body" else "Response gRPC Body")
+            return
+
+        media_type = self._normalized_media_type(content_type)
+        if media_type in {"multipart/mixed", "multipart/related"}:
+            self._analyze_multipart_container(
+                decoded_body, findings, source, content_type, _multipart_depth
+            )
             return
 
         body_pairs = body_param_pairs + self._extract_body_pairs(
@@ -899,27 +1101,16 @@ class SensitiveDataDetector:
             findings.extend(signal_findings)
 
             # JSON embedded in a form/multipart field.
-            if isinstance(value, str) and len(value) <= 1024 * 1024:
-                try:
-                    nested = json.loads(value)
-                except (json.JSONDecodeError, TypeError, ValueError):
-                    nested = None
-                if isinstance(nested, (dict, list)):
-                    for nested_key, nested_value in self._extract_json_pairs(nested, str(key)):
-                        nested_type = self._classify_key_value(nested_key, nested_value)
-                        if nested_type:
-                            findings.append(self.create_finding(
-                                nested_type, source, nested_key, nested_value
-                            ))
-                        nested_signals = []
-                        self._analyze_text_signals(
-                            nested_value, nested_signals, source, nested_key
-                        )
-                        findings.extend(nested_signals)
+            self._analyze_structured_json_value(value, findings, source, key)
 
         # Free-form response/request text: retain strong email detection, but
         # do not scan arbitrary 10-digit sequences as phone numbers.
-        if len(decoded_body) <= 2 * 1024 * 1024:
+        if (
+            media_type not in {
+                "multipart/form-data", "multipart/mixed", "multipart/related"
+            }
+            and len(decoded_body) <= 2 * 1024 * 1024
+        ):
             for email in self._find_emails(decoded_body):
                 findings.append(self.create_finding("Email", source, "email", email))
 
@@ -987,6 +1178,13 @@ class SensitiveDataDetector:
                     for f in signals:
                         add_finding(f.get("type"), "Query Parameter", f.get("key"),
                                     f.get("_raw_value"), "outbound")
+                    structured = []
+                    self._analyze_structured_json_value(
+                        value, structured, "Query Parameter", key
+                    )
+                    for f in structured:
+                        add_finding(f.get("type"), "Query Parameter", f.get("key"),
+                                    f.get("_raw_value"), "outbound")
 
                 # Headers: all header names, not only Authorization.
                 request_header_pairs = list(
@@ -1018,6 +1216,11 @@ class SensitiveDataDetector:
                     signals = []
                     self._analyze_text_signals(value, signals, "Cookie", key)
                     for f in signals:
+                        add_finding(f.get("type"), "Cookie", f.get("key"),
+                                    f.get("_raw_value"), "outbound")
+                    structured = []
+                    self._analyze_structured_json_value(value, structured, "Cookie", key)
+                    for f in structured:
                         add_finding(f.get("type"), "Cookie", f.get("key"),
                                     f.get("_raw_value"), "outbound")
 
@@ -1065,6 +1268,13 @@ class SensitiveDataDetector:
                     signals = []
                     self._analyze_text_signals(value, signals, "Response Cookie", key)
                     for f in signals:
+                        add_finding(f.get("type"), "Response Cookie", f.get("key"),
+                                    f.get("_raw_value"), "inbound")
+                    structured = []
+                    self._analyze_structured_json_value(
+                        value, structured, "Response Cookie", key
+                    )
+                    for f in structured:
                         add_finding(f.get("type"), "Response Cookie", f.get("key"),
                                     f.get("_raw_value"), "inbound")
 

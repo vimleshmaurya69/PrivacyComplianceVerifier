@@ -17,6 +17,7 @@ from src.analyzer.privacy_normalizer import PrivacyNormalizer
 from src.analyzer.sensitive_data_detector import SensitiveDataDetector
 from src.models.request import Request
 from src.parser.request_extractor import RequestExtractor
+from src.utils.protobuf_scanner import ProtobufScanner
 
 
 EMAIL = "synthetic.person@example.test"
@@ -57,6 +58,41 @@ def multipart(fields, quoted_boundary=False):
     return extracted({"postData": {
         "mimeType": f"multipart/form-data; boundary={parameter}", "text": body
     }})
+
+
+def protobuf_string(field_number, value):
+    data = value.encode("utf-8")
+    if len(data) >= 128:
+        raise ValueError("Test helper supports one-byte protobuf lengths only")
+    return bytes([(field_number << 3) | 2, len(data)]) + data
+
+
+def multipart_container(subtype, parts):
+    boundary = "phase-3a-boundary"
+    body = "".join(
+        f"--{boundary}\r\nContent-Type: {content_type}\r\n\r\n{payload}\r\n"
+        for content_type, payload in parts
+    ) + f"--{boundary}--\r\n"
+    return body, f"multipart/{subtype}; boundary={boundary}"
+
+
+def multipart_form_part(disposition, payload, part_content_type=None):
+    boundary = "filename-form-boundary"
+    content_type_header = (
+        f"Content-Type: {part_content_type}\r\n" if part_content_type else ""
+    )
+    body = (
+        f"--{boundary}\r\n"
+        f"Content-Disposition: {disposition}\r\n"
+        f"{content_type_header}\r\n"
+        f"{payload}\r\n"
+        f"--{boundary}--\r\n"
+    )
+    return request(
+        body=body,
+        body_type="multipart",
+        content_type=f"multipart/form-data; boundary={boundary}",
+    )
 
 
 class SensitiveDataRegressions(unittest.TestCase):
@@ -186,6 +222,239 @@ class SensitiveDataRegressions(unittest.TestCase):
             with self.subTest(body=body):
                 self.assert_clean(request(body=json.dumps(body)))
 
+    def test_array_uses_nearest_exact_parent_field(self):
+        cases = [
+            ("device_id", DEVICE_ID, "Device ID", "Device Identifier"),
+            ("access_token", credential(), "Authorization Token", "Authentication"),
+            ("latitude", "12.3456", "Latitude", "Location"),
+        ]
+        for field, value, artifact, category in cases:
+            with self.subTest(field=field):
+                self.assert_artifact(
+                    request(body=json.dumps({field: [value]}), body_type="json"),
+                    artifact, category, value, "Request Body", key=f"{field}[0]",
+                )
+
+    def test_array_does_not_promote_arbitrary_ancestor_or_generic_id(self):
+        self.assert_clean(request(
+            body=json.dumps({"device_id_container": [{"id": DEVICE_ID}]}),
+            body_type="json",
+        ))
+
+    def test_structured_json_query_value_is_classified(self):
+        value = json.dumps({"profile": {"device_id": DEVICE_ID}})
+        self.assert_artifact(
+            request(query_param_pairs=[("variables", value)]),
+            "Device ID", "Device Identifier", DEVICE_ID, "Query Parameter",
+            key="variables.profile.device_id",
+        )
+
+    def test_deep_json_carrier_does_not_abort_remaining_request_analysis(self):
+        deeply_nested = "[" * 1500 + '"ordinary"' + "]" * 1500
+        self.assert_artifact(
+            request(query_param_pairs=[
+                ("deep", deeply_nested),
+                ("device_id", DEVICE_ID),
+            ]),
+            "Device ID", "Device Identifier", DEVICE_ID, "Query Parameter",
+            key="device_id",
+        )
+
+    def test_structured_json_cookie_values_preserve_direction(self):
+        outbound_token = credential()
+        inbound_device = DEVICE_ID
+        sample = request(
+            cookie_pairs=[("payload", json.dumps({"access_token": outbound_token}))],
+            response_cookie_pairs=[("state", json.dumps({"device_id": inbound_device}))],
+        )
+        self.assert_artifact(
+            sample, "Authorization Token", "Authentication", outbound_token,
+            "Cookie", "outbound", key="payload.access_token",
+        )
+        self.assert_artifact(
+            sample, "Device ID", "Device Identifier", inbound_device,
+            "Response Cookie", "inbound", key="state.device_id",
+        )
+
+    def test_malformed_json_carrier_falls_back_to_text_signals(self):
+        malformed = '{"broken":"' + EMAIL
+        self.assert_artifact(
+            request(query_param_pairs=[("payload", malformed)]),
+            "Email", "Personal Information", EMAIL, "Query Parameter",
+        )
+
+    def test_non_json_prefixed_carrier_is_not_structurally_classified(self):
+        value = "prefix " + json.dumps({"device_id": DEVICE_ID})
+        self.assert_clean(request(
+            query_param_pairs=[("payload", value)],
+            cookie_pairs=[("payload", value)],
+        ))
+
+    def test_multipart_mixed_application_http_uses_embedded_body_only(self):
+        embedded = (
+            "HTTP/1.1 200 OK\r\n"
+            "Content-Type: application/json\r\n"
+            "X-Contact: header-only@example.test\r\n\r\n"
+            + json.dumps({"device_id": DEVICE_ID})
+        )
+        body, content_type = multipart_container(
+            "mixed", [("application/http", embedded)]
+        )
+        sample = request(
+            response_body=body,
+            response_body_type="binary",
+            response_content_type=content_type,
+        )
+        detector = SensitiveDataDetector([sample])
+        detector.analyze()
+        PrivacyNormalizer([sample]).normalize()
+
+        self.assertTrue(any(
+            finding.get("type") == "Device ID"
+            and finding.get("source") == "Response Body"
+            and finding.get("direction") == "inbound"
+            for finding in sample.sensitive_data
+        ))
+        self.assertFalse(any(
+            finding.get("type") == "Email"
+            for finding in sample.sensitive_data
+        ))
+
+    def test_multipart_related_skips_arbitrary_binary_parts(self):
+        hidden_email = "hidden.person@example.test"
+        body, content_type = multipart_container("related", [
+            ("application/json", json.dumps({"device_id": DEVICE_ID})),
+            ("application/octet-stream", "binary-prefix " + hidden_email),
+        ])
+        sample = request(body=body, body_type="binary", content_type=content_type)
+        detector = SensitiveDataDetector([sample])
+        detector.analyze()
+        PrivacyNormalizer([sample]).normalize()
+
+        self.assertTrue(any(
+            finding.get("type") == "Device ID"
+            and finding.get("source") == "Request Body"
+            and finding.get("direction") == "outbound"
+            for finding in sample.sensitive_data
+        ))
+        self.assertFalse(any(
+            finding.get("type") == "Email"
+            for finding in sample.sensitive_data
+        ))
+
+    def test_form_data_binary_without_filename_is_not_text_scanned(self):
+        boundary = "binary-form-boundary"
+        hidden_email = "hidden.binary@example.test"
+        body = (
+            f"--{boundary}\r\n"
+            'Content-Disposition: form-data; name="blob"\r\n'
+            "Content-Type: application/octet-stream\r\n\r\n"
+            f"binary-prefix {hidden_email}\r\n"
+            f"--{boundary}--\r\n"
+        )
+        self.assert_clean(request(
+            body=body,
+            body_type="multipart",
+            content_type=f"multipart/form-data; boundary={boundary}",
+        ))
+
+    def test_form_data_quoted_filename_preserves_binary_and_text_behavior(self):
+        binary_email = "quoted.binary@example.test"
+        self.assert_clean(multipart_form_part(
+            'form-data; name="upload"; filename="photo.jpg"',
+            "binary-prefix " + binary_email,
+        ))
+
+        text_email = "quoted.text@example.test"
+        self.assert_artifact(
+            multipart_form_part(
+                'form-data; name="upload"; filename="contacts.txt"',
+                text_email,
+                "text/plain",
+            ),
+            "Email", "Personal Information", text_email, "Request Body",
+        )
+
+    def test_form_data_unquoted_filename_is_binary_protected(self):
+        hidden_email = "unquoted.binary@example.test"
+        self.assert_clean(multipart_form_part(
+            'form-data; name="upload"; filename=photo.jpg',
+            "binary-prefix " + hidden_email,
+        ))
+
+    def test_form_data_malformed_filename_fails_closed(self):
+        hidden_email = "malformed.binary@example.test"
+        self.assert_clean(multipart_form_part(
+            'form-data; name="upload"; filename="photo.jpg',
+            "binary-prefix " + hidden_email,
+        ))
+
+    def test_form_data_text_parts_remain_analyzable(self):
+        boundary = "text-form-boundary"
+        named_email = "named.person@example.test"
+        unnamed_email = "unnamed.person@example.test"
+        body = (
+            f"--{boundary}\r\n"
+            'Content-Disposition: form-data; name="contact"\r\n\r\n'
+            f"{named_email}\r\n"
+            f"--{boundary}\r\n"
+            "Content-Type: text/plain\r\n\r\n"
+            f"{unnamed_email}\r\n"
+            f"--{boundary}--\r\n"
+        )
+        sample = request(
+            body=body,
+            body_type="multipart",
+            content_type=f'multipart/form-data; boundary="{boundary}"',
+        )
+        for email in (named_email, unnamed_email):
+            with self.subTest(email=email):
+                self.assert_artifact(
+                    sample, "Email", "Personal Information", email, "Request Body"
+                )
+
+    def test_multipart_boundary_parameter_accepts_safe_spacing_and_quotes(self):
+        boundary = "spaced-boundary"
+        body = (
+            f"--{boundary}\r\nContent-Type: application/json\r\n\r\n"
+            + json.dumps({"device_id": DEVICE_ID})
+            + f"\r\n--{boundary}--\r\n"
+        )
+        content_types = [
+            f"multipart/mixed; boundary={boundary}",
+            f'multipart/mixed; boundary = "{boundary}" ; type=application/json',
+        ]
+        for content_type in content_types:
+            with self.subTest(content_type=content_type):
+                self.assert_artifact(
+                    request(body=body, body_type="binary", content_type=content_type),
+                    "Device ID", "Device Identifier", DEVICE_ID, "Request Body",
+                )
+
+    def test_multipart_boundary_parameter_rejects_partial_or_wrong_names(self):
+        boundary = "actual-boundary"
+        body = (
+            f"--{boundary}\r\nContent-Type: application/json\r\n\r\n"
+            + json.dumps({"device_id": DEVICE_ID})
+            + f"\r\n--{boundary}--\r\n"
+        )
+        for content_type in (
+            f"multipart/mixed; notboundary={boundary}",
+            "multipart/mixed; boundary",
+            f'multipart/mixed; boundary="{boundary}',
+        ):
+            with self.subTest(content_type=content_type):
+                self.assert_clean(request(
+                    body=body, body_type="binary", content_type=content_type
+                ))
+
+    def test_multipart_mixed_without_boundary_is_safe_and_clean(self):
+        self.assert_clean(request(
+            body="synthetic.person@example.test",
+            body_type="binary",
+            content_type="multipart/mixed",
+        ))
+
     def test_html_visible_email_is_not_discarded_with_inline_script(self):
         """Response JavaScript heuristic drops the entire HTML document."""
         body = ('<html><script>function ready(){var flag=1;return flag;}</script>'
@@ -210,6 +479,85 @@ class SensitiveDataRegressions(unittest.TestCase):
         body = (b"\x01" + len(compressed).to_bytes(4, "big") + compressed).decode("latin-1")
         self.assert_artifact(request(body=body, body_type="grpc"),
                              "Email", "Personal Information", EMAIL, "gRPC Body")
+
+    def test_raw_protobuf_request_email(self):
+        body = protobuf_string(1, EMAIL).decode("latin-1")
+        self.assert_artifact(
+            request(
+                body=body,
+                body_type="binary",
+                content_type="Application/X-Protobuf; charset=binary",
+            ),
+            "Email", "Personal Information", EMAIL, "Protobuf Body",
+        )
+
+    def test_raw_protobuf_response_email(self):
+        body = protobuf_string(1, EMAIL).decode("latin-1")
+        self.assert_artifact(
+            request(
+                response_body=body,
+                response_body_type="binary",
+                response_content_type="application/x-protobuf",
+            ),
+            "Email", "Personal Information", EMAIL, "Response Protobuf Body", "inbound",
+        )
+
+    def test_base64_raw_protobuf_response_email(self):
+        body = base64.b64encode(protobuf_string(1, EMAIL)).decode("ascii")
+        self.assert_artifact(
+            request(
+                response_body=body,
+                response_body_type="binary",
+                response_content_type="APPLICATION/X-PROTOBUF; version=1",
+                response_body_encoding="base64",
+            ),
+            "Email", "Personal Information", EMAIL, "Response Protobuf Body", "inbound",
+        )
+
+    def test_raw_protobuf_is_not_mistaken_for_grpc_envelope(self):
+        # A valid fixed32 field makes bytes 1:5 look like a one-byte gRPC
+        # payload length. Raw parsing must not strip those first five bytes.
+        message = b"\x0d\x00\x00\x00\x01" + protobuf_string(2, EMAIL)
+        self.assertEqual([EMAIL], ProtobufScanner.extract_raw_strings(message))
+        self.assert_artifact(
+            request(
+                body=message.decode("latin-1"),
+                body_type="binary",
+                content_type="application/x-protobuf",
+            ),
+            "Email", "Personal Information", EMAIL, "Protobuf Body",
+        )
+
+    def test_raw_protobuf_extracts_multiple_top_level_strings(self):
+        message = protobuf_string(1, "ordinary") + protobuf_string(2, EMAIL)
+        self.assertEqual(
+            ["ordinary", EMAIL],
+            ProtobufScanner.extract_raw_strings(message),
+        )
+
+    def test_malformed_raw_protobuf_fails_safely(self):
+        malformed = b"\x0a\xff"
+        self.assertEqual([], ProtobufScanner.extract_raw_strings(malformed))
+        self.assert_clean(request(
+            body=malformed.decode("latin-1"),
+            body_type="binary",
+            content_type="application/x-protobuf",
+        ))
+
+    def test_octet_stream_is_not_dispatched_as_raw_protobuf(self):
+        body = protobuf_string(1, EMAIL).decode("latin-1")
+        sample = request(
+            body=body,
+            body_type="binary",
+            content_type="application/octet-stream",
+        )
+        SensitiveDataDetector([sample]).analyze()
+
+        self.assertFalse(any(
+            finding.get("source") == "Protobuf Body"
+            or finding.get("key") == "protobuf_string"
+            for finding in sample.sensitive_data
+        ))
 
     # Passing controls prevent fixing false negatives by indiscriminate flagging.
     def test_control_generic_query_exact_email(self):

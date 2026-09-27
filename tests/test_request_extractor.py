@@ -41,7 +41,12 @@ class RequestExtractorTests(unittest.TestCase):
         self.assertEqual("two", sample.headers["X-Trace"])
         self.assertEqual([("session", "one"), ("session", "two")], sample.cookie_pairs)
         self.assertEqual([("Set-Cookie", "a=one"), ("Set-Cookie", "a=two")], sample.response_header_pairs)
-        self.assertEqual([("token", "one"), ("token", "two")], sample.response_cookie_pairs)
+        self.assertEqual([
+            ("token", "one"),
+            ("token", "two"),
+            ("a", "one"),
+            ("a", "two"),
+        ], sample.response_cookie_pairs)
 
     def test_parses_raw_cookie_headers_when_har_cookie_arrays_are_absent(self):
         sample = extract(
@@ -55,6 +60,43 @@ class RequestExtractorTests(unittest.TestCase):
         self.assertEqual([("a", "one"), ("a", "two"), ("theme", "dark")], sample.cookie_pairs)
         self.assertEqual("two", sample.cookies["a"])
         self.assertEqual([("sid", "one"), ("sid", "two")], sample.response_cookie_pairs)
+        self.assertEqual("two", sample.response_cookies["sid"])
+
+    def test_merges_partial_har_cookie_arrays_with_raw_headers(self):
+        sample = extract(
+            {
+                "headers": [{
+                    "name": "Cookie",
+                    "value": "theme=dark; xs=first; xs=second; duplicate=same; duplicate=same",
+                }],
+                "cookies": [
+                    {"name": "theme", "value": "dark"},
+                    {"name": "duplicate", "value": "same"},
+                ],
+            },
+            {
+                "headers": [
+                    {"name": "Set-Cookie", "value": "theme=light; Path=/"},
+                    {"name": "Set-Cookie", "value": "sid=one; HttpOnly"},
+                    {"name": "Set-Cookie", "value": "sid=two; HttpOnly"},
+                ],
+                "cookies": [{"name": "theme", "value": "light"}],
+            },
+        )
+
+        self.assertEqual([
+            ("theme", "dark"),
+            ("duplicate", "same"),
+            ("xs", "first"),
+            ("xs", "second"),
+            ("duplicate", "same"),
+        ], sample.cookie_pairs)
+        self.assertEqual("second", sample.cookies["xs"])
+        self.assertEqual([
+            ("theme", "light"),
+            ("sid", "one"),
+            ("sid", "two"),
+        ], sample.response_cookie_pairs)
         self.assertEqual("two", sample.response_cookies["sid"])
 
     def test_preserves_duplicate_query_parameters(self):
@@ -95,6 +137,30 @@ class RequestExtractorTests(unittest.TestCase):
         self.assertEqual("base64", sample.response_body_encoding)
         self.assertEqual("eyJwaG9uZSI6IjEyMyJ9", sample.body)
         self.assertEqual("eyJwaG9uZSI6IjQ1NiJ9", sample.response_body)
+
+    def test_extracts_raw_protobuf_request_body(self):
+        body = "\x0a\x08ordinary"
+        sample = extract({"postData": {
+            "mimeType": "application/x-protobuf",
+            "text": body,
+        }})
+
+        self.assertEqual(body, sample.body)
+        self.assertEqual("application/x-protobuf", sample.content_type)
+        self.assertEqual("binary", sample.body_type)
+
+    def test_extracts_raw_protobuf_response_body_and_encoding(self):
+        body = "CghvcmRpbmFyeQ=="
+        sample = extract(response_fields={"content": {
+            "mimeType": "application/x-protobuf",
+            "encoding": "base64",
+            "text": body,
+        }})
+
+        self.assertEqual(body, sample.response_body)
+        self.assertEqual("application/x-protobuf", sample.response_content_type)
+        self.assertEqual("binary", sample.response_body_type)
+        self.assertEqual("base64", sample.response_body_encoding)
 
 
 if __name__ == "__main__":

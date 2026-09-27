@@ -114,7 +114,7 @@ class RequestExtractor:
         return result, pairs
 
     def _extract_raw_cookies(self, header_pairs, response=False):
-        """Extract cookies from Cookie/Set-Cookie headers when HAR omits them."""
+        """Extract cookie occurrences from raw Cookie/Set-Cookie headers."""
         result = {}
         pairs = []
         target = "set-cookie" if response else "cookie"
@@ -139,6 +139,27 @@ class RequestExtractor:
                 result[name] = cookie_value
 
         return result, pairs
+
+    @staticmethod
+    def _merge_cookie_pairs(har_pairs, header_pairs):
+        """Merge cookie occurrences while removing only exact duplicates."""
+        merged = list(har_pairs or [])
+        unmatched_har = {}
+
+        for pair in merged:
+            unmatched_har[pair] = unmatched_har.get(pair, 0) + 1
+
+        for pair in header_pairs or []:
+            if unmatched_har.get(pair, 0):
+                unmatched_har[pair] -= 1
+            else:
+                merged.append(pair)
+
+        result = {}
+        for name, value in merged:
+            result[name] = value
+
+        return result, merged
 
     # ---------------------------------------------------------
     # Request body extraction
@@ -288,8 +309,10 @@ class RequestExtractor:
             cookies, cookie_pairs = self._extract_cookies(
                 request.get("cookies", [])
             )
-            if not cookie_pairs:
-                cookies, cookie_pairs = self._extract_raw_cookies(header_pairs)
+            _, raw_cookie_pairs = self._extract_raw_cookies(header_pairs)
+            cookies, cookie_pairs = self._merge_cookie_pairs(
+                cookie_pairs, raw_cookie_pairs
+            )
 
             # -------------------------------------------------
             # Query Parameters
@@ -332,10 +355,12 @@ class RequestExtractor:
             response_cookies, response_cookie_pairs = self._extract_cookies(
                 response.get("cookies", [])
             )
-            if not response_cookie_pairs:
-                response_cookies, response_cookie_pairs = self._extract_raw_cookies(
-                    response_header_pairs, response=True
-                )
+            _, raw_response_cookie_pairs = self._extract_raw_cookies(
+                response_header_pairs, response=True
+            )
+            response_cookies, response_cookie_pairs = self._merge_cookie_pairs(
+                response_cookie_pairs, raw_response_cookie_pairs
+            )
 
             # -------------------------------------------------
             # Response Body
