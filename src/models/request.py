@@ -65,6 +65,8 @@ class Request:
     body_type: str = "text"
     body_encoding: Optional[str] = None
     content_type: str = ""
+    # Appended to preserve the positional order of all pre-existing fields.
+    body_param_pairs_reconciled: bool = False
 
     def __str__(self):
         return (

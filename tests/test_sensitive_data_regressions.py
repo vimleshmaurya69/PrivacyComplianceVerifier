@@ -11,8 +11,10 @@ import gzip
 import json
 import secrets
 import unittest
+import zlib
 from urllib.parse import urlencode
 
+from src.analyzer.privacy_inventory import PrivacyInventoryGenerator
 from src.analyzer.privacy_normalizer import PrivacyNormalizer
 from src.analyzer.sensitive_data_detector import SensitiveDataDetector
 from src.models.request import Request
@@ -249,6 +251,68 @@ class SensitiveDataRegressions(unittest.TestCase):
             key="variables.profile.device_id",
         )
 
+    def test_unpadded_standard_base64_json_uses_normal_classification(self):
+        payload = json.dumps(
+            {"device_id": DEVICE_ID}, separators=(",", ":")
+        ).encode("utf-8")
+        encoded = base64.b64encode(payload).decode("ascii").rstrip("=")
+        self.assert_artifact(
+            request(query_param_pairs=[("payload", encoded)]),
+            "Device ID", "Device Identifier", DEVICE_ID, "Query Parameter",
+            key="payload.__base64__.device_id",
+        )
+
+    def test_unpadded_base64url_json_uses_normal_classification(self):
+        payload = json.dumps(
+            {"device_id": DEVICE_ID, "m": "\u083e"},
+            ensure_ascii=False,
+            separators=(",", ":"),
+        ).encode("utf-8")
+        encoded = base64.urlsafe_b64encode(payload).decode("ascii").rstrip("=")
+        self.assertRegex(encoded, r"[-_]")
+        self.assert_artifact(
+            request(cookie_pairs=[("payload", encoded)]),
+            "Device ID", "Device Identifier", DEVICE_ID, "Cookie",
+            key="payload.__base64__.device_id",
+        )
+
+    def test_random_opaque_urlsafe_value_remains_clean(self):
+        self.assert_clean(request(
+            query_param_pairs=[("opaque", credential())],
+            cookie_pairs=[("opaque", credential())],
+        ))
+
+    def test_bounded_recursive_stringified_json(self):
+        nested = json.dumps({"device_id": DEVICE_ID})
+        for key in ("third", "second", "first"):
+            nested = json.dumps({key: nested})
+        self.assert_artifact(
+            request(body=json.dumps({"payload": nested}), body_type="json"),
+            "Device ID", "Device Identifier", DEVICE_ID, "Request Body",
+            key="payload.first.second.third.device_id",
+        )
+
+    def test_stringified_json_recursion_limit_preserves_sibling_detection(self):
+        nested = json.dumps({"device_id": DEVICE_ID})
+        for index in range(8):
+            nested = json.dumps({f"level_{index}": nested})
+        sample = request(body=json.dumps({
+            "deep": nested,
+            "latitude": "12.3456",
+        }), body_type="json")
+        detector = SensitiveDataDetector([sample])
+        detector.analyze()
+        PrivacyNormalizer([sample]).normalize()
+
+        self.assertTrue(any(
+            finding.get("type") == "Latitude"
+            for finding in sample.sensitive_data
+        ))
+        self.assertFalse(any(
+            finding.get("type") == "Device ID"
+            for finding in sample.sensitive_data
+        ))
+
     def test_deep_json_carrier_does_not_abort_remaining_request_analysis(self):
         deeply_nested = "[" * 1500 + '"ordinary"' + "]" * 1500
         self.assert_artifact(
@@ -259,6 +323,80 @@ class SensitiveDataRegressions(unittest.TestCase):
             "Device ID", "Device Identifier", DEVICE_ID, "Query Parameter",
             key="device_id",
         )
+
+    def test_post_data_params_only_value_and_text_occurrence_do_not_duplicate(self):
+        sample = extracted({"postData": {
+            "mimeType": "application/x-www-form-urlencoded",
+            "text": urlencode({"phone": PHONE}),
+            "params": [
+                {"name": "phone", "value": PHONE},
+                {"name": "device_id", "value": DEVICE_ID},
+            ],
+        }})
+        detector = SensitiveDataDetector([sample])
+        detector.analyze()
+        PrivacyNormalizer([sample]).normalize()
+
+        self.assertEqual(1, sum(
+            finding.get("type") == "Phone"
+            for finding in sample.sensitive_data
+        ))
+        self.assertEqual(1, sum(
+            finding.get("type") == "Device ID"
+            for finding in sample.sensitive_data
+        ))
+
+    def test_reconciled_form_params_preserve_excess_identical_occurrence(self):
+        sample = extracted({"postData": {
+            "mimeType": "application/x-www-form-urlencoded",
+            "text": urlencode({"email": EMAIL}),
+            "params": [
+                {"name": "email", "value": EMAIL},
+                {"name": "email", "value": EMAIL},
+            ],
+        }})
+        SensitiveDataDetector([sample]).analyze()
+
+        self.assertTrue(sample.body_param_pairs_reconciled)
+        self.assertEqual(2, sum(
+            finding.get("type") == "Email"
+            and finding.get("source") == "Request Body"
+            for finding in sample.sensitive_data
+        ))
+
+    def test_identical_query_and_cookie_occurrences_reach_inventory(self):
+        sample = request(
+            query_param_pairs=[("email", EMAIL), ("email", EMAIL)],
+            cookie_pairs=[("device_id", DEVICE_ID), ("device_id", DEVICE_ID)],
+            traffic_type="Application",
+        )
+        SensitiveDataDetector([sample]).analyze()
+        PrivacyNormalizer([sample]).normalize()
+        evidence = PrivacyInventoryGenerator([sample]).generate()["Application"]["evidence"]
+
+        self.assertEqual(2, sum(
+            item.get("source") == "Query Parameter"
+            and item.get("type") == "Email"
+            for item in evidence
+        ))
+        self.assertEqual(2, sum(
+            item.get("source") == "Cookie"
+            and item.get("type") == "Device ID"
+            for item in evidence
+        ))
+
+    def test_compatibility_query_view_does_not_duplicate_pair_evidence(self):
+        sample = request(
+            query_param_pairs=[("email", EMAIL)],
+            query_params={"email": EMAIL},
+        )
+        SensitiveDataDetector([sample]).analyze()
+
+        self.assertEqual(1, sum(
+            finding.get("source") == "Query Parameter"
+            and finding.get("type") == "Email"
+            for finding in sample.sensitive_data
+        ))
 
     def test_structured_json_cookie_values_preserve_direction(self):
         outbound_token = credential()
@@ -335,6 +473,32 @@ class SensitiveDataRegressions(unittest.TestCase):
             finding.get("type") == "Device ID"
             and finding.get("source") == "Request Body"
             and finding.get("direction") == "outbound"
+            for finding in sample.sensitive_data
+        ))
+        self.assertFalse(any(
+            finding.get("type") == "Email"
+            for finding in sample.sensitive_data
+        ))
+
+    def test_binary_part_internal_boundary_text_does_not_create_part(self):
+        boundary = "phase-3a-boundary"
+        hidden_email = "hidden.boundary@example.test"
+        binary_payload = (
+            "binary-prefix--" + boundary
+            + "\r\nContent-Type: text/plain\r\n\r\n"
+            + hidden_email
+        )
+        body, content_type = multipart_container("mixed", [
+            ("application/octet-stream", binary_payload),
+            ("application/json", json.dumps({"device_id": DEVICE_ID})),
+        ])
+        sample = request(body=body, body_type="binary", content_type=content_type)
+        detector = SensitiveDataDetector([sample])
+        detector.analyze()
+        PrivacyNormalizer([sample]).normalize()
+
+        self.assertTrue(any(
+            finding.get("type") == "Device ID"
             for finding in sample.sensitive_data
         ))
         self.assertFalse(any(
@@ -455,6 +619,21 @@ class SensitiveDataRegressions(unittest.TestCase):
             content_type="multipart/mixed",
         ))
 
+    def test_multipart_part_limit_counts_malformed_parts(self):
+        boundary = "bounded-part-count"
+        body = f"--{boundary}\r\n"
+        body += (f"invalid\r\n--{boundary}\r\n" * 256)
+        body += (
+            "Content-Type: text/plain\r\n\r\n"
+            "beyond.limit@example.test\r\n"
+            f"--{boundary}--\r\n"
+        )
+        self.assert_clean(request(
+            body=body,
+            body_type="binary",
+            content_type=f"multipart/mixed; boundary={boundary}",
+        ))
+
     def test_html_visible_email_is_not_discarded_with_inline_script(self):
         """Response JavaScript heuristic drops the entire HTML document."""
         body = ('<html><script>function ready(){var flag=1;return flag;}</script>'
@@ -479,6 +658,25 @@ class SensitiveDataRegressions(unittest.TestCase):
         body = (b"\x01" + len(compressed).to_bytes(4, "big") + compressed).decode("latin-1")
         self.assert_artifact(request(body=body, body_type="grpc"),
                              "Email", "Personal Information", EMAIL, "gRPC Body")
+
+    def test_base64_grpc_preserves_utf8_bytes_before_email(self):
+        unicode_value = "café".encode("utf-8")
+        email_value = EMAIL.encode("utf-8")
+        message = (
+            bytes([0x0A, len(unicode_value)]) + unicode_value
+            + bytes([0x12, len(email_value)]) + email_value
+        )
+        frame = b"\x00" + len(message).to_bytes(4, "big") + message
+        body = base64.b64encode(frame).decode("ascii")
+        self.assert_artifact(
+            request(
+                body=body,
+                body_type="grpc",
+                body_encoding="base64",
+                content_type="application/grpc",
+            ),
+            "Email", "Personal Information", EMAIL, "gRPC Body",
+        )
 
     def test_raw_protobuf_request_email(self):
         body = protobuf_string(1, EMAIL).decode("latin-1")
@@ -513,6 +711,157 @@ class SensitiveDataRegressions(unittest.TestCase):
             ),
             "Email", "Personal Information", EMAIL, "Response Protobuf Body", "inbound",
         )
+
+    def test_http_toolkit_request_content_reaches_raw_protobuf_detector(self):
+        body = base64.b64encode(protobuf_string(1, EMAIL)).decode("ascii")
+        sample = extracted({
+            "headers": [{
+                "name": "Content-Type",
+                "value": "application/x-protobuf",
+            }],
+            "_content": {
+                "text": body,
+                "size": len(body),
+                "encoding": "base64",
+            },
+        })
+        self.assert_artifact(
+            sample,
+            "Email", "Personal Information", EMAIL, "Protobuf Body",
+        )
+
+    def test_utf16_declared_charset_request_and_response_json(self):
+        request_body = base64.b64encode(
+            json.dumps({"device_id": DEVICE_ID}).encode("utf-16le")
+        ).decode("ascii")
+        response_email = "utf16.person@example.test"
+        response_body = base64.b64encode(
+            json.dumps({"email": response_email}).encode("utf-16be")
+        ).decode("ascii")
+        sample = request(
+            body=request_body,
+            body_type="json",
+            body_encoding="base64",
+            content_type="application/json; charset=utf-16le",
+            response_body=response_body,
+            response_body_type="json",
+            response_body_encoding="base64",
+            response_content_type='application/json; charset="utf-16be"',
+        )
+        self.assert_artifact(
+            sample, "Device ID", "Device Identifier", DEVICE_ID, "Request Body"
+        )
+        self.assert_artifact(
+            sample, "Email", "Personal Information", response_email,
+            "Response Body", "inbound",
+        )
+
+    def test_decoded_unicode_string_is_not_reinterpreted_as_bytes(self):
+        person_name = "Zoë 🚀"
+        self.assert_artifact(
+            request(
+                body=json.dumps({"name": person_name}, ensure_ascii=False),
+                body_type="json",
+                content_type="application/json; charset=utf-8",
+            ),
+            "Name", "Personal Information", person_name, "Request Body",
+        )
+
+    def test_decoded_json_ignores_stale_charset_declaration(self):
+        self.assert_artifact(
+            request(
+                body=json.dumps({"email": EMAIL}),
+                body_type="json",
+                content_type="application/json; charset=utf-16",
+            ),
+            "Email", "Personal Information", EMAIL, "Request Body",
+        )
+
+    def test_genuine_text_bytes_use_declared_charset(self):
+        cases = [
+            (
+                "utf-8",
+                json.dumps({"email": EMAIL}).encode("utf-8"),
+                "Email",
+                "Personal Information",
+                EMAIL,
+            ),
+            (
+                "utf-16le",
+                json.dumps({"device_id": DEVICE_ID}).encode("utf-16le"),
+                "Device ID",
+                "Device Identifier",
+                DEVICE_ID,
+            ),
+        ]
+        for charset, body, artifact, category, value in cases:
+            with self.subTest(charset=charset):
+                self.assert_artifact(
+                    request(
+                        body=body,
+                        body_type="json",
+                        content_type=f"application/json; charset={charset}",
+                    ),
+                    artifact, category, value, "Request Body",
+                )
+
+    def test_unsupported_charset_falls_back_to_utf8(self):
+        body = json.dumps({"device_id": DEVICE_ID}).encode("utf-8")
+        self.assert_artifact(
+            request(
+                body=body,
+                body_type="json",
+                content_type="application/json; charset=x-unsupported",
+            ),
+            "Device ID", "Device Identifier", DEVICE_ID, "Request Body",
+        )
+
+    def test_gzip_and_deflate_body_decoding_remains_supported(self):
+        payload = json.dumps({"device_id": DEVICE_ID}).encode("utf-8")
+        cases = [
+            ("gzip", gzip.compress(payload)),
+            ("deflate", zlib.compress(payload)),
+        ]
+        for encoding, body in cases:
+            with self.subTest(encoding=encoding):
+                self.assert_artifact(
+                    request(
+                        body=body,
+                        body_type="json",
+                        body_encoding=encoding,
+                        content_type="application/json",
+                    ),
+                    "Device ID", "Device Identifier", DEVICE_ID, "Request Body",
+                )
+
+    def test_oversized_decompression_is_rejected_without_aborting_response(self):
+        oversized = gzip.compress(b"x" * (8 * 1024 * 1024 + 1))
+        response_email = "continued.person@example.test"
+        self.assert_artifact(
+            request(
+                body=oversized,
+                body_type="text",
+                body_encoding="gzip",
+                content_type="text/plain",
+                response_body=response_email,
+                response_content_type="text/plain",
+            ),
+            "Email", "Personal Information", response_email,
+            "Response Body", "inbound",
+        )
+
+    def test_already_decoded_unknown_content_encoding_is_not_redecoded(self):
+        for encoding in ("br", "zstd"):
+            with self.subTest(encoding=encoding):
+                self.assert_artifact(
+                    request(
+                        body=json.dumps({"device_id": DEVICE_ID}),
+                        body_type="json",
+                        body_encoding=encoding,
+                        content_type="application/json",
+                    ),
+                    "Device ID", "Device Identifier", DEVICE_ID, "Request Body",
+                )
 
     def test_raw_protobuf_is_not_mistaken_for_grpc_envelope(self):
         # A valid fixed32 field makes bytes 1:5 look like a one-byte gRPC
@@ -564,6 +913,13 @@ class SensitiveDataRegressions(unittest.TestCase):
         self.assert_artifact(extracted({"url": "https://example.test/?" + urlencode({"q": EMAIL})}),
                              "Email", "Personal Information", EMAIL, "Query Parameter")
 
+    def test_control_email_key_with_non_email_value(self):
+        self.assert_clean(request(
+            body=json.dumps({"email": "not provided"}),
+            body_type="json",
+            content_type="application/json",
+        ))
+
     def test_control_flat_form_phone(self):
         self.assert_artifact(request(body=urlencode({"phone": PHONE}), body_type="form"),
                              "Phone", "Personal Information", PHONE, "Request Body")
@@ -580,6 +936,86 @@ class SensitiveDataRegressions(unittest.TestCase):
     def test_control_plaintext_email(self):
         self.assert_artifact(request(response_body=f"Contact: {EMAIL}"),
                              "Email", "Personal Information", EMAIL, "Response Body", "inbound")
+
+    def test_large_free_text_email_scanning_uses_chunk_overlap(self):
+        crossing_email = "crossing.person@example.test"
+        ending_email = "ending.person@example.test"
+        boundary = SensitiveDataDetector._FREE_TEXT_CHUNK_SIZE
+        body = (
+            "x" * (boundary - 8)
+            + " " + crossing_email + " "
+            + "x" * (3 * 1024 * 1024 - boundary)
+            + " " + ending_email
+        )
+        sample = request(response_body=body, response_content_type="text/plain")
+        for email in (crossing_email, ending_email):
+            with self.subTest(email=email):
+                self.assert_artifact(
+                    sample, "Email", "Personal Information", email,
+                    "Response Body", "inbound",
+                )
+
+    def test_large_free_text_negative_control_remains_clean(self):
+        self.assert_clean(request(
+            response_body="ordinary text " * 180000,
+            response_content_type="text/plain",
+        ))
+
+    def test_email_scanning_is_bounded_with_many_markers_below_threshold(self):
+        detector = SensitiveDataDetector([])
+        body = ("a@" * 600000) + " " + EMAIL
+        self.assertEqual([EMAIL], detector._find_emails_in_body(body))
+
+    def test_email_scanning_is_bounded_with_millions_of_markers(self):
+        detector = SensitiveDataDetector([])
+        body = ("@" * (2 * 1024 * 1024 + 1024)) + " " + EMAIL
+        self.assertEqual([EMAIL], detector._find_emails_in_body(body))
+
+    def test_email_scanning_is_bounded_for_long_pathological_text(self):
+        detector = SensitiveDataDetector([])
+        body = ("a" * (2 * 1024 * 1024 - 256)) + "@invalid " + EMAIL
+        self.assertEqual([EMAIL], detector._find_emails_in_body(body))
+
+    def test_bounded_email_scanning_in_structured_json(self):
+        sample = request(
+            body=json.dumps({"note": ("a" * 100000) + " " + EMAIL}),
+            body_type="json",
+            content_type="application/json",
+        )
+        self.assert_artifact(
+            sample, "Email", "Personal Information", EMAIL, "Request Body",
+            key="note",
+        )
+
+    def test_bounded_email_scanning_in_query_and_cookie_values(self):
+        adversarial = ("a" * 100000) + " " + EMAIL
+        sample = request(
+            query_param_pairs=[("payload", adversarial)],
+            cookie_pairs=[("payload", adversarial)],
+        )
+        self.assert_artifact(
+            sample, "Email", "Personal Information", EMAIL, "Query Parameter",
+            key="payload",
+        )
+        self.assert_artifact(
+            sample, "Email", "Personal Information", EMAIL, "Cookie",
+            key="payload",
+        )
+
+    def test_bounded_email_scanning_in_protobuf_strings(self):
+        detector = SensitiveDataDetector([])
+        findings = []
+        detector._analyze_protobuf_strings(
+            [("a" * 100000) + " " + EMAIL],
+            findings,
+            "Protobuf Body",
+        )
+
+        self.assertEqual([EMAIL], [
+            finding.get("_raw_value")
+            for finding in findings
+            if finding.get("type") == "Email"
+        ])
 
     def test_control_grpc_single_frame_email(self):
         data = EMAIL.encode("utf-8")

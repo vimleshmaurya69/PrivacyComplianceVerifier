@@ -1,6 +1,7 @@
 import base64
 import gzip
 import hashlib
+import io
 import json
 import re
 import zlib
@@ -57,6 +58,11 @@ class Requests:
 
 class SensitiveDataDetector:
 
+    _MAX_DECODED_BODY_BYTES = 8 * 1024 * 1024
+    _MAX_STRUCTURED_JSON_RECURSION = 4
+    _FREE_TEXT_CHUNK_SIZE = 512 * 1024
+    _FREE_TEXT_CHUNK_OVERLAP = 512
+
     def __init__(self, requests: List[Request]):
         self.requests = requests
 
@@ -89,7 +95,8 @@ class SensitiveDataDetector:
     # Create finding
     # --------------------------------------------------
 
-    def create_finding(self, finding_type, source, key, value, direction=None):
+    def create_finding(self, finding_type, source, key, value, direction=None,
+                       occurrence_id=None):
 
         return {
             "type": finding_type,
@@ -98,6 +105,7 @@ class SensitiveDataDetector:
             "key": key,
             "value_redacted": self.redact_value(value),
             "_raw_value": value,
+            "_occurrence_id": occurrence_id,
         }
 
     # --------------------------------------------------
@@ -265,15 +273,107 @@ class SensitiveDataDetector:
         return bool(re.fullmatch(pattern, value))
 
     def _find_emails(self, value: Any) -> List[str]:
-
+        """Return email occurrences using bounded work per '@' marker."""
         if value is None:
             return []
+        return [
+            email
+            for _, _, email in self._find_email_matches(str(value))
+        ]
 
-        value = str(value)
+    @staticmethod
+    def _find_email_matches(text):
+        """Return bounded ``(start, end, value)`` email candidates."""
+        local_characters = frozenset(
+            "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._%+-"
+        )
+        domain_characters = frozenset(
+            "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.-"
+        )
+        ascii_letters = frozenset(
+            "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        )
+        matches = []
+        marker = text.find("@")
 
-        pattern = r"[A-Za-z0-9._%+-]+" r"@[A-Za-z0-9.-]+\.[A-Za-z]{2,}"
+        while marker >= 0:
+            local_start = marker
+            while (
+                local_start > 0
+                and marker - local_start < 64
+                and text[local_start - 1] in local_characters
+            ):
+                local_start -= 1
 
-        return re.findall(pattern, value)
+            domain_end = marker + 1
+            domain_limit = min(len(text), marker + 1 + 320)
+            last_valid_end = None
+            separator_dot = None
+            tld_length = 0
+
+            while (
+                domain_end < domain_limit
+                and text[domain_end] in domain_characters
+            ):
+                character = text[domain_end]
+                relative_index = domain_end - marker - 1
+
+                if character == ".":
+                    separator_dot = relative_index
+                    tld_length = 0
+                elif separator_dot is not None and character in ascii_letters:
+                    tld_length += 1
+                    if separator_dot >= 1 and tld_length >= 2:
+                        last_valid_end = domain_end + 1
+                elif separator_dot is not None:
+                    separator_dot = None
+                    tld_length = 0
+
+                domain_end += 1
+
+            if local_start < marker and last_valid_end is not None:
+                matches.append((
+                    local_start,
+                    last_valid_end,
+                    text[local_start:last_valid_end],
+                ))
+
+            marker = text.find("@", marker + 1)
+
+        return matches
+
+    def _find_emails_in_body(self, text: str) -> List[str]:
+        """Scan an accepted body with bounded work around each email marker."""
+        if not text:
+            return []
+
+        emails = []
+        seen_spans = set()
+        chunk_size = self._FREE_TEXT_CHUNK_SIZE
+        overlap = self._FREE_TEXT_CHUNK_OVERLAP
+
+        if len(text) <= 2 * 1024 * 1024:
+            chunks = ((0, text),)
+        else:
+            chunks = (
+                (
+                    max(0, offset - overlap),
+                    text[
+                        max(0, offset - overlap):
+                        min(len(text), offset + chunk_size)
+                    ],
+                )
+                for offset in range(0, len(text), chunk_size)
+            )
+
+        for chunk_start, chunk in chunks:
+            for start, end, email in self._find_email_matches(chunk):
+                span = (chunk_start + start, chunk_start + end)
+                if span not in seen_spans:
+                    seen_spans.add(span)
+                    emails.append(email)
+
+        return emails
 
     def _is_phone_number(self, value: Any) -> bool:
 
@@ -360,10 +460,10 @@ class SensitiveDataDetector:
             key_candidates.add(normalized_key[2:])
 
         # Email
-        email_keys = {
-            "email", "email_address", "user_email", "useremail", "mail",
-        }
-        if key_candidates & email_keys or self._is_email(value):
+        # An email-shaped value is strong evidence regardless of its key. A
+        # key alias alone must not turn arbitrary status/configuration text
+        # into personal information.
+        if self._is_email(value):
             return "Email"
 
         # Phone/contact fields.  Plain numeric values require explicit field
@@ -483,35 +583,39 @@ class SensitiveDataDetector:
         if value is None:
             return False
         value = str(value).strip()
-        if len(value) < 16 or len(value) > 65536 or len(value) % 4 != 0:
+        if len(value) < 16 or len(value) > 65536:
             return False
-        return bool(re.fullmatch(r"[A-Za-z0-9+/]+={0,2}", value))
+        if not re.fullmatch(r"[A-Za-z0-9+/_-]+={0,2}", value):
+            return False
+        unpadded = value.rstrip("=")
+        return len(unpadded) % 4 != 1
 
     def _decode_base64_candidates(self, value: Any) -> List[str]:
         if not self._looks_like_base64(value):
             return []
         raw = str(value).strip()
-        candidates = [raw]
-        # URL-safe base64 is common in query/form payloads.
-        if "-" in raw or "_" in raw:
-            candidates.append(raw.replace("-", "+").replace("_", "/"))
         results = []
         seen = set()
-        for candidate in candidates:
-            try:
-                decoded = base64.b64decode(candidate, validate=True)
-                if not decoded or len(decoded) > 1024 * 1024:
-                    continue
-                text = decoded.decode("utf-8", errors="ignore").strip()
-                if not text or text in seen:
-                    continue
-                printable = sum(ch.isprintable() or ch.isspace() for ch in text)
-                if printable / max(len(text), 1) < 0.85:
-                    continue
+        padding = "=" * ((4 - len(raw) % 4) % 4)
+        try:
+            decoded = base64.b64decode(
+                (raw + padding).encode("ascii"),
+                altchars=b"-_",
+                validate=True,
+            )
+            if not decoded or len(decoded) > 1024 * 1024:
+                return []
+            text = decoded.decode("utf-8").strip()
+            if not text:
+                return []
+            printable = sum(ch.isprintable() or ch.isspace() for ch in text)
+            if printable / max(len(text), 1) < 0.85:
+                return []
+            if text not in seen:
                 seen.add(text)
                 results.append(text)
-            except Exception:
-                continue
+        except (UnicodeDecodeError, UnicodeEncodeError, ValueError):
+            return []
         return results
 
     def _phone_context(self, key: Any) -> bool:
@@ -526,14 +630,19 @@ class SensitiveDataDetector:
         )
 
     def _analyze_text_signals(self, value: Any, findings, source, key,
-                              allow_phone=True, allow_base64=True):
+                              allow_phone=True, allow_base64=True,
+                              _structured_depth=0, _structured_seen=None,
+                              _occurrence_id=None):
         """Detect high-confidence artifacts without treating arbitrary JS as phone data."""
         if value is None:
             return
         text = str(value)
 
         for email in self._find_emails(text):
-            findings.append(self.create_finding("Email", source, key, email))
+            findings.append(self.create_finding(
+                "Email", source, key, email,
+                occurrence_id=_occurrence_id,
+            ))
 
         phone_context = self._phone_context(key)
 
@@ -547,83 +656,169 @@ class SensitiveDataDetector:
             )
             for candidate in international_candidates + plain_candidates:
                 if self._is_phone_number(candidate):
-                    findings.append(self.create_finding("Phone", source, key, candidate))
+                    findings.append(self.create_finding(
+                        "Phone", source, key, candidate,
+                        occurrence_id=_occurrence_id,
+                    ))
 
         if not allow_base64:
             return
 
         for decoded in self._decode_base64_candidates(text):
-            # Base64 email detection is allowed because emails have a strong
-            # pattern. Phone detection requires structured/contextual data.
-            for email in self._find_emails(decoded):
-                findings.append(self.create_finding(
-                    "Email", source, f"{key}.__base64__", email
-                ))
-
-            try:
-                decoded_json = json.loads(decoded)
-            except (json.JSONDecodeError, TypeError, ValueError, RecursionError):
-                decoded_json = None
-
-            if isinstance(decoded_json, (dict, list)):
-                for decoded_key, decoded_value in self._extract_json_pairs(decoded_json):
-                    if not self._phone_context(decoded_key):
-                        continue
-                    if self._is_phone_number(decoded_value):
-                        findings.append(self.create_finding(
-                            "Phone", source,
-                            f"{key}.__base64__.{decoded_key}", decoded_value
-                        ))
-                    for phone in re.findall(r"\+\d[\d .()\-]{8,14}\d", str(decoded_value)):
-                        if self._is_phone_number(phone):
-                            findings.append(self.create_finding(
-                                "Phone", source,
-                                f"{key}.__base64__.{decoded_key}", phone
-                            ))
+            # Structured decoded JSON owns its nested evidence paths. Fall back
+            # to free-text email scanning only when it is not structured JSON.
+            structured = self._analyze_structured_json_value(
+                decoded,
+                findings,
+                source,
+                f"{key}.__base64__",
+                _depth=_structured_depth + 1,
+                _seen=_structured_seen,
+                _occurrence_id=_occurrence_id,
+            )
+            if not structured:
+                for email in self._find_emails(decoded):
+                    findings.append(self.create_finding(
+                        "Email", source, f"{key}.__base64__", email,
+                        occurrence_id=_occurrence_id,
+                    ))
 
     # --------------------------------------------------
     # Body decoding / extraction
     # --------------------------------------------------
 
+    @staticmethod
+    def _declared_charset(content_type):
+        """Return a conservative supported codec declared by Content-Type."""
+        match = re.search(
+            r'(?:^|;)\s*charset\s*=\s*(?:"([^"\r\n]+)"|([^;\s\r\n]+))',
+            str(content_type or ""),
+            re.IGNORECASE,
+        )
+        if not match:
+            return None
+
+        declared = (match.group(1) or match.group(2) or "").strip().lower()
+        aliases = {
+            "utf-8": "utf-8",
+            "utf8": "utf-8",
+            "utf-16": "utf-16",
+            "utf16": "utf-16",
+            "utf-16le": "utf-16le",
+            "utf16le": "utf-16le",
+            "utf-16be": "utf-16be",
+            "utf16be": "utf-16be",
+            "iso-8859-1": "latin-1",
+            "latin-1": "latin-1",
+            "latin1": "latin-1",
+            "us-ascii": "ascii",
+            "ascii": "ascii",
+        }
+        return aliases.get(declared)
+
+    def _decode_text_bytes(self, data, content_type=None):
+        codecs = []
+        declared = self._declared_charset(content_type)
+        if declared:
+            codecs.append(declared)
+        codecs.extend(["utf-8", "latin-1"])
+
+        seen = set()
+        for codec in codecs:
+            if codec in seen:
+                continue
+            seen.add(codec)
+            try:
+                return data.decode(codec)
+            except (UnicodeDecodeError, UnicodeError, LookupError):
+                continue
+        return None
+
+    def _decompress_limited(self, data, encoding):
+        """Decompress known formats without exceeding the body-size limit."""
+        limit = self._MAX_DECODED_BODY_BYTES
+
+        if encoding in {"gzip", "x-gzip"}:
+            with gzip.GzipFile(fileobj=io.BytesIO(data)) as stream:
+                decoded = stream.read(limit + 1)
+            if len(decoded) > limit:
+                raise ValueError("decompressed body exceeds limit")
+            return decoded
+
+        if encoding == "deflate":
+            last_error = None
+            for window_bits in (zlib.MAX_WBITS, -zlib.MAX_WBITS):
+                try:
+                    decompressor = zlib.decompressobj(window_bits)
+                    decoded = decompressor.decompress(data, limit + 1)
+                    if len(decoded) > limit or decompressor.unconsumed_tail:
+                        raise ValueError("decompressed body exceeds limit")
+                    decoded += decompressor.flush(limit + 1 - len(decoded))
+                    if len(decoded) > limit or not decompressor.eof:
+                        raise ValueError("invalid or oversized deflate body")
+                    return decoded
+                except (zlib.error, ValueError) as error:
+                    last_error = error
+            raise last_error or ValueError("invalid deflate body")
+
+        return data
+
     def _decode_body(self, body, content_type=None, content_encoding=None):
         """Decode common HAR body encodings while preserving plain text fallback."""
         if body is None:
             return None
-        if isinstance(body, bytes):
-            raw = body
-        else:
-            text = str(body)
-            # Most HAR bodies are already textual. latin-1 preserves byte values
-            # when a compressed/binary body was decoded into a string.
-            raw = text.encode("latin-1", errors="replace")
 
         encoding = (content_encoding or "").lower()
         encodings = [e.strip() for e in encoding.split(",") if e.strip()]
+
+        if isinstance(body, str):
+            recognized_encodings = {
+                "base64", "gzip", "x-gzip", "deflate",
+            }
+            if not any(item in recognized_encodings for item in encodings):
+                # HAR content.text is already Unicode. A charset declaration
+                # describes the original entity bytes and must not reinterpret
+                # the decoded Python string.
+                return body
+
+            try:
+                raw = body.encode("latin-1")
+            except UnicodeEncodeError:
+                # A genuine compressed/base64 carrier is byte-representable.
+                # Preserve decoded Unicode when a stale HTTP encoding header is
+                # retained by the HAR producer.
+                return body
+            started_as_text = True
+        elif isinstance(body, bytes):
+            raw = body
+            started_as_text = False
+        else:
+            raw = str(body).encode("latin-1", errors="replace")
+            started_as_text = False
+
         candidates = [raw]
 
         for enc in reversed(encodings):
             current = candidates[-1]
             try:
                 if enc == "base64":
-                    candidates.append(base64.b64decode(current, validate=True))
+                    decoded = base64.b64decode(current, validate=True)
                 elif enc in {"gzip", "x-gzip"}:
-                    candidates.append(gzip.decompress(current))
+                    decoded = self._decompress_limited(current, enc)
                 elif enc == "deflate":
-                    try:
-                        candidates.append(zlib.decompress(current))
-                    except zlib.error:
-                        candidates.append(zlib.decompress(current, -zlib.MAX_WBITS))
+                    decoded = self._decompress_limited(current, enc)
+                else:
+                    continue
+                if len(decoded) > self._MAX_DECODED_BODY_BYTES:
+                    raise ValueError("decoded body exceeds limit")
+                candidates.append(decoded)
             except Exception:
+                if started_as_text and len(candidates) == 1:
+                    return body
                 break
 
         decoded = candidates[-1]
-        try:
-            return decoded.decode("utf-8")
-        except UnicodeDecodeError:
-            try:
-                return decoded.decode("latin-1")
-            except Exception:
-                return None
+        return self._decode_text_bytes(decoded, content_type)
 
     @staticmethod
     def _normalized_media_type(content_type):
@@ -653,12 +848,11 @@ class SensitiveDataDetector:
                 if item == "base64":
                     decoded = base64.b64decode(decoded, validate=True)
                 elif item in {"gzip", "x-gzip"}:
-                    decoded = gzip.decompress(decoded)
+                    decoded = self._decompress_limited(decoded, item)
                 elif item == "deflate":
-                    try:
-                        decoded = zlib.decompress(decoded)
-                    except zlib.error:
-                        decoded = zlib.decompress(decoded, -zlib.MAX_WBITS)
+                    decoded = self._decompress_limited(decoded, item)
+                if len(decoded) > self._MAX_DECODED_BODY_BYTES:
+                    return None
             except Exception:
                 return None
 
@@ -693,33 +887,66 @@ class SensitiveDataDetector:
                     pairs.append((current_key, value))
         return pairs
 
-    def _analyze_structured_json_value(self, value, findings, source, parent_key):
-        """Analyze one explicitly JSON-shaped carrier value without recursion."""
+    def _analyze_structured_json_value(self, value, findings, source, parent_key,
+                                       _depth=0, _seen=None,
+                                       _occurrence_id=None):
+        """Analyze explicitly JSON-shaped values with bounded string recursion."""
+        if _depth >= self._MAX_STRUCTURED_JSON_RECURSION:
+            return False
         if not isinstance(value, str) or len(value) > 1024 * 1024:
-            return
+            return False
 
         text = value.lstrip()
         if not text.startswith(("{", "[")):
-            return
+            return False
+
+        marker = (
+            str(parent_key),
+            hashlib.sha256(text.encode("utf-8", errors="replace")).digest(),
+        )
+        seen = set(_seen or ())
+        if marker in seen:
+            return False
+        seen.add(marker)
 
         try:
             parsed = json.loads(text)
         except (json.JSONDecodeError, TypeError, ValueError, RecursionError):
-            return
+            return False
 
         if not isinstance(parsed, (dict, list)):
-            return
+            return False
 
         for nested_key, nested_value in self._extract_json_pairs(parsed, str(parent_key)):
             nested_type = self._classify_key_value(nested_key, nested_value)
             if nested_type:
                 findings.append(self.create_finding(
-                    nested_type, source, nested_key, nested_value
+                    nested_type, source, nested_key, nested_value,
+                    occurrence_id=_occurrence_id,
                 ))
 
-            self._analyze_text_signals(
-                nested_value, findings, source, nested_key
+            nested_structured = self._analyze_structured_json_value(
+                nested_value,
+                findings,
+                source,
+                nested_key,
+                _depth=_depth + 1,
+                _seen=seen,
+                _occurrence_id=_occurrence_id,
             )
+
+            if not nested_structured:
+                self._analyze_text_signals(
+                    nested_value,
+                    findings,
+                    source,
+                    nested_key,
+                    _structured_depth=_depth,
+                    _structured_seen=seen,
+                    _occurrence_id=_occurrence_id,
+                )
+
+        return True
 
     # --------------------------------------------------
     # Structured body extraction
@@ -811,15 +1038,39 @@ class SensitiveDataDetector:
         if not boundary:
             return []
 
-        delimiter = "--" + boundary
         parts = []
+        body_text = str(body)
+        boundary_line = re.compile(
+            rf"(?m)^--{re.escape(boundary)}(--)?[ \t]*(?:\r?\n|$)"
+        )
+        boundaries = boundary_line.finditer(body_text)
+
+        try:
+            current_boundary = next(boundaries)
+        except StopIteration:
+            return []
+
+        if current_boundary.group(1):
+            return []
 
         # The complete body is already capped by _analyze_body. Bound part
         # count and header size independently to avoid pathological MIME data.
-        for raw_part in str(body).split(delimiter)[1:257]:
+        processed_parts = 0
+        while processed_parts < 256:
+            try:
+                next_boundary = next(boundaries)
+                raw_part = body_text[current_boundary.end():next_boundary.start()]
+            except StopIteration:
+                # Preserve best-effort handling of a final truncated part.
+                next_boundary = None
+                raw_part = body_text[current_boundary.end():]
+
+            processed_parts += 1
+            final_part = next_boundary is None or bool(next_boundary.group(1))
+            if not final_part:
+                current_boundary = next_boundary
+
             part = raw_part.lstrip("\r\n")
-            if part.startswith("--"):
-                break
             part = part.rstrip("\r\n")
 
             if "\r\n\r\n" in part:
@@ -827,9 +1078,13 @@ class SensitiveDataDetector:
             elif "\n\n" in part:
                 header_text, payload = part.split("\n\n", 1)
             else:
+                if final_part:
+                    break
                 continue
 
             if len(header_text) > 64 * 1024:
+                if final_part:
+                    break
                 continue
 
             headers = {}
@@ -839,6 +1094,9 @@ class SensitiveDataDetector:
                     headers[name.strip().lower()] = header_value.strip()
 
             parts.append((headers, payload.rstrip("\r\n")))
+
+            if final_part:
+                break
 
         return parts
 
@@ -954,10 +1212,10 @@ class SensitiveDataDetector:
                 # gRPC commonly uses gzip.  Some captures label deflate
                 # payloads equivalently, so accept either successful decode.
                 try:
-                    message = gzip.decompress(message)
+                    message = self._decompress_limited(message, "gzip")
                 except Exception:
                     try:
-                        message = zlib.decompress(message)
+                        message = self._decompress_limited(message, "deflate")
                     except Exception:
                         continue
 
@@ -974,22 +1232,10 @@ class SensitiveDataDetector:
         if not body:
             return
 
-        # HAR normally gives us a string.
-        # Convert it back to bytes without altering
-        # the byte values represented by the string.
-        if isinstance(body, str):
-
-            body_bytes = body.encode("latin-1", errors="replace")
-
-        elif isinstance(body, bytes):
-
-            body_bytes = body
-
-        else:
-
+        if not isinstance(body, bytes):
             return
 
-        for message in self._iter_grpc_messages(body_bytes):
+        for message in self._iter_grpc_messages(body):
             # ProtobufScanner expects a gRPC envelope; wrap each individual
             # message so every frame is parsed independently.
             frame = b"\x00" + len(message).to_bytes(4, "big") + message
@@ -1008,6 +1254,7 @@ class SensitiveDataDetector:
         """Detect only strong string signals exposed by the protobuf scanner."""
 
         for value in strings:
+            occurrence_id = object()
 
             # --------------------------------------
             # Email
@@ -1018,7 +1265,10 @@ class SensitiveDataDetector:
             for email in emails:
 
                 findings.append(
-                    self.create_finding("Email", source, "protobuf_string", email)
+                    self.create_finding(
+                        "Email", source, "protobuf_string", email,
+                        occurrence_id=occurrence_id,
+                    )
                 )
 
             # --------------------------------------
@@ -1035,6 +1285,7 @@ class SensitiveDataDetector:
                             source,
                             "protobuf_string",
                             phone,
+                            occurrence_id=occurrence_id,
                         )
                     )
 
@@ -1043,7 +1294,8 @@ class SensitiveDataDetector:
     # --------------------------------------------------
 
     def _analyze_body(self, body, findings, body_type=None, source="Request Body", content_type=None,
-                      content_encoding=None, body_param_pairs=None, _multipart_depth=0):
+                      content_encoding=None, body_param_pairs=None,
+                      body_param_pairs_reconciled=False, _multipart_depth=0):
         body_param_pairs = list(body_param_pairs or [])
         if not body and not body_param_pairs:
             return
@@ -1056,7 +1308,9 @@ class SensitiveDataDetector:
         if body_length > 8 * 1024 * 1024:
             return
 
-        if self._normalized_media_type(content_type) == "application/x-protobuf":
+        media_type = self._normalized_media_type(content_type)
+
+        if media_type == "application/x-protobuf":
             protobuf_body = self._decode_body_bytes(body, content_encoding)
             if protobuf_body is None:
                 return
@@ -1067,52 +1321,97 @@ class SensitiveDataDetector:
             )
             return
 
+        if body_type == "grpc" or media_type == "application/grpc":
+            grpc_body = self._decode_body_bytes(body, content_encoding)
+            if grpc_body is None:
+                return
+            self._analyze_grpc_body(
+                grpc_body,
+                findings,
+                "gRPC Body" if source == "Request Body" else "Response gRPC Body",
+            )
+            return
+
         decoded_body = ""
         if body:
             decoded_body = self._decode_body(body, content_type, content_encoding)
             if decoded_body is None:
                 return
 
-        if body_type == "grpc":
-            self._analyze_grpc_body(decoded_body, findings,
-                                    "gRPC Body" if source == "Request Body" else "Response gRPC Body")
-            return
-
-        media_type = self._normalized_media_type(content_type)
         if media_type in {"multipart/mixed", "multipart/related"}:
             self._analyze_multipart_container(
                 decoded_body, findings, source, content_type, _multipart_depth
             )
             return
 
-        body_pairs = body_param_pairs + self._extract_body_pairs(
+        parsed_body_pairs = self._extract_body_pairs(
             decoded_body, body_type, content_type
         )
+
+        # Merge exact pair occurrences rather than concatenating two parser
+        # representations of the same body. Distinct repeated occurrences and
+        # params-only values remain represented independently.
+        body_pairs = list(parsed_body_pairs)
+        if body_param_pairs_reconciled:
+            body_pairs.extend(body_param_pairs)
+        else:
+            represented_pairs = {}
+            for pair in parsed_body_pairs:
+                represented_pairs[pair] = represented_pairs.get(pair, 0) + 1
+            for pair in body_param_pairs:
+                if represented_pairs.get(pair, 0):
+                    represented_pairs[pair] -= 1
+                else:
+                    body_pairs.append(pair)
+
+        body_findings_start = len(findings)
         for key, value in body_pairs:
+            occurrence_id = object()
             finding_type = self._classify_key_value(key, value)
             if finding_type:
-                findings.append(self.create_finding(finding_type, source, key, value))
+                findings.append(self.create_finding(
+                    finding_type, source, key, value,
+                    occurrence_id=occurrence_id,
+                ))
 
-            signal_findings = []
-            self._analyze_text_signals(
-                value, signal_findings, source, key,
-                allow_phone=True, allow_base64=True
+            # Structured carriers own their nested evidence. Text scanning is
+            # the safe fallback for ordinary or malformed values.
+            structured = self._analyze_structured_json_value(
+                value, findings, source, key,
+                _occurrence_id=occurrence_id,
             )
-            findings.extend(signal_findings)
-
-            # JSON embedded in a form/multipart field.
-            self._analyze_structured_json_value(value, findings, source, key)
+            if not structured:
+                signal_findings = []
+                self._analyze_text_signals(
+                    value, signal_findings, source, key,
+                    allow_phone=True, allow_base64=True,
+                    _occurrence_id=occurrence_id,
+                )
+                findings.extend(signal_findings)
 
         # Free-form response/request text: retain strong email detection, but
         # do not scan arbitrary 10-digit sequences as phone numbers.
-        if (
-            media_type not in {
-                "multipart/form-data", "multipart/mixed", "multipart/related"
-            }
-            and len(decoded_body) <= 2 * 1024 * 1024
-        ):
-            for email in self._find_emails(decoded_body):
-                findings.append(self.create_finding("Email", source, "email", email))
+        if media_type not in {
+            "multipart/form-data", "multipart/mixed", "multipart/related"
+        }:
+            represented_emails = {}
+            for finding in findings[body_findings_start:]:
+                if finding.get("type") != "Email":
+                    continue
+                fingerprint = self._fingerprint(finding.get("_raw_value"))
+                represented_emails[fingerprint] = (
+                    represented_emails.get(fingerprint, 0) + 1
+                )
+
+            for email in self._find_emails_in_body(decoded_body):
+                fingerprint = self._fingerprint(email)
+                if represented_emails.get(fingerprint, 0):
+                    represented_emails[fingerprint] -= 1
+                    continue
+                findings.append(self.create_finding(
+                    "Email", source, "email", email,
+                    occurrence_id=object(),
+                ))
 
     # --------------------------------------------------
     # Analyze Requests + Responses
@@ -1139,15 +1438,21 @@ class SensitiveDataDetector:
             findings = []
             finding_signatures = set()
 
-            def add_finding(finding_type, source, key, value, direction):
+            def add_finding(finding_type, source, key, value, direction,
+                            occurrence_id=None):
                 signature = (
-                    finding_type, source, str(key).lower(), self._fingerprint(value)
+                    occurrence_id,
+                    finding_type,
+                    source,
+                    str(key).lower(),
+                    self._fingerprint(value),
                 )
                 if signature in finding_signatures:
                     return
                 finding_signatures.add(signature)
                 findings.append(self.create_finding(
-                    finding_type, source, key, value, direction=direction
+                    finding_type, source, key, value, direction=direction,
+                    occurrence_id=occurrence_id,
                 ))
 
             try:
@@ -1155,74 +1460,114 @@ class SensitiveDataDetector:
                 # phones, but never arbitrary 10-digit path segments.
                 url_path = self._get_url_path(getattr(request, "url", ""))
                 if url_path:
+                    occurrence_id = object()
                     path_findings = []
                     self._analyze_text_signals(
                         url_path, path_findings, "URL Path", "path",
-                        allow_phone=True, allow_base64=False
+                        allow_phone=True, allow_base64=False,
+                        _occurrence_id=occurrence_id,
                     )
                     for f in path_findings:
                         add_finding(f.get("type"), "URL Path", f.get("key"),
-                                    f.get("_raw_value"), "outbound")
+                                    f.get("_raw_value"), "outbound",
+                                    f.get("_occurrence_id"))
 
                 # Query parameters: preserve duplicates and analyze each value.
                 query_pairs = list(getattr(request, "query_param_pairs", []) or [])
                 if not query_pairs:
                     query_pairs = list(self._iter_url_query_pairs(getattr(request, "url", "")))
-                query_pairs.extend(list((getattr(request, "query_params", {}) or {}).items()))
+                if not query_pairs:
+                    query_pairs = list((getattr(request, "query_params", {}) or {}).items())
                 for key, value in query_pairs:
+                    occurrence_id = object()
                     finding_type = self._classify_key_value(key, value)
                     if finding_type:
-                        add_finding(finding_type, "Query Parameter", key, value, "outbound")
-                    signals = []
-                    self._analyze_text_signals(value, signals, "Query Parameter", key)
-                    for f in signals:
-                        add_finding(f.get("type"), "Query Parameter", f.get("key"),
-                                    f.get("_raw_value"), "outbound")
+                        add_finding(
+                            finding_type, "Query Parameter", key, value,
+                            "outbound", occurrence_id,
+                        )
                     structured = []
-                    self._analyze_structured_json_value(
-                        value, structured, "Query Parameter", key
+                    is_structured = self._analyze_structured_json_value(
+                        value, structured, "Query Parameter", key,
+                        _occurrence_id=occurrence_id,
                     )
                     for f in structured:
                         add_finding(f.get("type"), "Query Parameter", f.get("key"),
-                                    f.get("_raw_value"), "outbound")
+                                    f.get("_raw_value"), "outbound",
+                                    f.get("_occurrence_id"))
+                    if not is_structured:
+                        signals = []
+                        self._analyze_text_signals(
+                            value, signals, "Query Parameter", key,
+                            _occurrence_id=occurrence_id,
+                        )
+                        for f in signals:
+                            add_finding(
+                                f.get("type"), "Query Parameter", f.get("key"),
+                                f.get("_raw_value"), "outbound",
+                                f.get("_occurrence_id"),
+                            )
 
                 # Headers: all header names, not only Authorization.
                 request_header_pairs = list(
                     getattr(request, "header_pairs", []) or []
                 ) or list((getattr(request, "headers", {}) or {}).items())
                 for key, value in request_header_pairs:
+                    occurrence_id = object()
                     finding_type = self._classify_key_value(key, value)
                     if self._normalize_key(key) == "authorization":
                         finding_type = "Authorization Token"
                     if finding_type:
-                        add_finding(finding_type, "Header", key, value, "outbound")
+                        add_finding(
+                            finding_type, "Header", key, value,
+                            "outbound", occurrence_id,
+                        )
                     signals = []
-                    self._analyze_text_signals(value, signals, "Header", key)
+                    self._analyze_text_signals(
+                        value, signals, "Header", key,
+                        _occurrence_id=occurrence_id,
+                    )
                     for f in signals:
                         add_finding(f.get("type"), "Header", f.get("key"),
-                                    f.get("_raw_value"), "outbound")
+                                    f.get("_raw_value"), "outbound",
+                                    f.get("_occurrence_id"))
 
                 # Cookies: all cookie names plus session-cookie heuristic.
                 request_cookie_pairs = list(
                     getattr(request, "cookie_pairs", []) or []
                 ) or list((getattr(request, "cookies", {}) or {}).items())
                 for key, value in request_cookie_pairs:
+                    occurrence_id = object()
                     normalized = self._normalize_key(key)
                     finding_type = "Session Cookie" if (
                         normalized in session_cookie_keys or "session" in normalized
                     ) else self._classify_key_value(key, value)
                     if finding_type:
-                        add_finding(finding_type, "Cookie", key, value, "outbound")
-                    signals = []
-                    self._analyze_text_signals(value, signals, "Cookie", key)
-                    for f in signals:
-                        add_finding(f.get("type"), "Cookie", f.get("key"),
-                                    f.get("_raw_value"), "outbound")
+                        add_finding(
+                            finding_type, "Cookie", key, value,
+                            "outbound", occurrence_id,
+                        )
                     structured = []
-                    self._analyze_structured_json_value(value, structured, "Cookie", key)
+                    is_structured = self._analyze_structured_json_value(
+                        value, structured, "Cookie", key,
+                        _occurrence_id=occurrence_id,
+                    )
                     for f in structured:
                         add_finding(f.get("type"), "Cookie", f.get("key"),
-                                    f.get("_raw_value"), "outbound")
+                                    f.get("_raw_value"), "outbound",
+                                    f.get("_occurrence_id"))
+                    if not is_structured:
+                        signals = []
+                        self._analyze_text_signals(
+                            value, signals, "Cookie", key,
+                            _occurrence_id=occurrence_id,
+                        )
+                        for f in signals:
+                            add_finding(
+                                f.get("type"), "Cookie", f.get("key"),
+                                f.get("_raw_value"), "outbound",
+                                f.get("_occurrence_id"),
+                            )
 
                 # Request body
                 body_findings = []
@@ -1232,51 +1577,74 @@ class SensitiveDataDetector:
                     getattr(request, "content_type", None),
                     getattr(request, "body_encoding", None)
                     or self._header_value(getattr(request, "headers", {}), "content-encoding"),
-                    getattr(request, "body_param_pairs", [])
+                    getattr(request, "body_param_pairs", []),
+                    getattr(request, "body_param_pairs_reconciled", False),
                 )
                 for f in body_findings:
                     add_finding(f.get("type"), f.get("source"), f.get("key"),
-                                f.get("_raw_value"), "outbound")
+                                f.get("_raw_value"), "outbound",
+                                f.get("_occurrence_id"))
 
                 # Response headers
                 response_header_pairs = list(
                     getattr(request, "response_header_pairs", []) or []
                 ) or list((getattr(request, "response_headers", {}) or {}).items())
                 for key, value in response_header_pairs:
+                    occurrence_id = object()
                     finding_type = self._classify_key_value(key, value)
                     if self._normalize_key(key) == "authorization":
                         finding_type = "Authorization Token"
                     if finding_type:
-                        add_finding(finding_type, "Response Header", key, value, "inbound")
+                        add_finding(
+                            finding_type, "Response Header", key, value,
+                            "inbound", occurrence_id,
+                        )
                     signals = []
-                    self._analyze_text_signals(value, signals, "Response Header", key)
+                    self._analyze_text_signals(
+                        value, signals, "Response Header", key,
+                        _occurrence_id=occurrence_id,
+                    )
                     for f in signals:
                         add_finding(f.get("type"), "Response Header", f.get("key"),
-                                    f.get("_raw_value"), "inbound")
+                                    f.get("_raw_value"), "inbound",
+                                    f.get("_occurrence_id"))
 
                 # Response cookies
                 response_cookie_pairs = list(
                     getattr(request, "response_cookie_pairs", []) or []
                 ) or list((getattr(request, "response_cookies", {}) or {}).items())
                 for key, value in response_cookie_pairs:
+                    occurrence_id = object()
                     normalized = self._normalize_key(key)
                     finding_type = "Session Cookie" if (
                         normalized in session_cookie_keys or "session" in normalized
                     ) else self._classify_key_value(key, value)
                     if finding_type:
-                        add_finding(finding_type, "Response Cookie", key, value, "inbound")
-                    signals = []
-                    self._analyze_text_signals(value, signals, "Response Cookie", key)
-                    for f in signals:
-                        add_finding(f.get("type"), "Response Cookie", f.get("key"),
-                                    f.get("_raw_value"), "inbound")
+                        add_finding(
+                            finding_type, "Response Cookie", key, value,
+                            "inbound", occurrence_id,
+                        )
                     structured = []
-                    self._analyze_structured_json_value(
-                        value, structured, "Response Cookie", key
+                    is_structured = self._analyze_structured_json_value(
+                        value, structured, "Response Cookie", key,
+                        _occurrence_id=occurrence_id,
                     )
                     for f in structured:
                         add_finding(f.get("type"), "Response Cookie", f.get("key"),
-                                    f.get("_raw_value"), "inbound")
+                                    f.get("_raw_value"), "inbound",
+                                    f.get("_occurrence_id"))
+                    if not is_structured:
+                        signals = []
+                        self._analyze_text_signals(
+                            value, signals, "Response Cookie", key,
+                            _occurrence_id=occurrence_id,
+                        )
+                        for f in signals:
+                            add_finding(
+                                f.get("type"), "Response Cookie", f.get("key"),
+                                f.get("_raw_value"), "inbound",
+                                f.get("_occurrence_id"),
+                            )
 
                 # Response body
                 response_findings = []
@@ -1289,7 +1657,8 @@ class SensitiveDataDetector:
                 )
                 for f in response_findings:
                     add_finding(f.get("type"), f.get("source"), f.get("key"),
-                                f.get("_raw_value"), "inbound")
+                                f.get("_raw_value"), "inbound",
+                                f.get("_occurrence_id"))
 
             except Exception:
                 # One malformed request/body must never abort the entire HAR.
@@ -1299,6 +1668,7 @@ class SensitiveDataDetector:
             for finding in findings:
                 self._record_unique_finding(finding, request, request_index)
                 finding.pop("_raw_value", None)
+                finding.pop("_occurrence_id", None)
             request.sensitive_data = findings
 
         return self.requests

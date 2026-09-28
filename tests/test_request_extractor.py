@@ -106,6 +106,24 @@ class RequestExtractorTests(unittest.TestCase):
         self.assertEqual({"q": ["one", "two"], "empty": [""]}, sample.query_param_values)
         self.assertEqual({"q": "one", "empty": ""}, sample.query_params)
 
+    def test_merges_har_query_string_by_occurrence(self):
+        sample = extract({
+            "url": "https://example.test/search?q=one&q=one",
+            "queryString": [
+                {"name": "q", "value": "one"},
+                {"name": "q", "value": "one"},
+                {"name": "q", "value": "array-only"},
+                {"name": "device_id", "value": "params-only"},
+            ],
+        })
+
+        self.assertEqual([
+            ("q", "one"),
+            ("q", "one"),
+            ("q", "array-only"),
+            ("device_id", "params-only"),
+        ], sample.query_param_pairs)
+
     def test_extracts_post_data_params_without_text(self):
         sample = extract({"postData": {
             "mimeType": "application/x-www-form-urlencoded",
@@ -118,6 +136,43 @@ class RequestExtractorTests(unittest.TestCase):
         self.assertIsNone(sample.body)
         self.assertEqual([("phone", "111"), ("phone", "222")], sample.body_param_pairs)
         self.assertEqual("form", sample.body_type)
+
+    def test_merges_post_data_params_with_text_by_occurrence(self):
+        sample = extract({"postData": {
+            "mimeType": "application/x-www-form-urlencoded",
+            "text": "theme=dark&phone=111&phone=111",
+            "params": [
+                {"name": "theme", "value": "dark"},
+                {"name": "phone", "value": "111"},
+                {"name": "phone", "value": "111"},
+                {"name": "phone", "value": "222"},
+                {"name": "device_id", "value": "params-only"},
+            ],
+        }})
+
+        self.assertEqual("theme=dark&phone=111&phone=111", sample.body)
+        self.assertEqual([
+            ("phone", "222"),
+            ("device_id", "params-only"),
+        ], sample.body_param_pairs)
+
+    def test_reconciles_params_using_header_content_type_fallback(self):
+        sample = extract({
+            "headers": [{
+                "name": "Content-Type",
+                "value": "application/x-www-form-urlencoded",
+            }],
+            "postData": {
+                "text": "phone=111",
+                "params": [
+                    {"name": "phone", "value": "111"},
+                    {"name": "device_id", "value": "params-only"},
+                ],
+            },
+        })
+
+        self.assertEqual("application/x-www-form-urlencoded", sample.content_type)
+        self.assertEqual([("device_id", "params-only")], sample.body_param_pairs)
 
     def test_preserves_base64_body_encoding_metadata(self):
         sample = extract(
@@ -148,6 +203,40 @@ class RequestExtractorTests(unittest.TestCase):
         self.assertEqual(body, sample.body)
         self.assertEqual("application/x-protobuf", sample.content_type)
         self.assertEqual("binary", sample.body_type)
+
+    def test_extracts_http_toolkit_base64_request_content(self):
+        body = "CghvcmRpbmFyeQ=="
+        sample = extract({
+            "headers": [{
+                "name": "Content-Type",
+                "value": "application/x-protobuf",
+            }],
+            "_content": {
+                "text": body,
+                "size": 10,
+                "encoding": "base64",
+            },
+        })
+
+        self.assertEqual(body, sample.body)
+        self.assertEqual("base64", sample.body_encoding)
+        self.assertEqual("application/x-protobuf", sample.content_type)
+        self.assertEqual("binary", sample.body_type)
+
+    def test_post_data_text_takes_precedence_over_toolkit_content(self):
+        sample = extract({
+            "postData": {
+                "mimeType": "application/json",
+                "text": '{"source":"postData"}',
+            },
+            "_content": {
+                "text": "ignored",
+                "encoding": "base64",
+            },
+        })
+
+        self.assertEqual('{"source":"postData"}', sample.body)
+        self.assertIsNone(sample.body_encoding)
 
     def test_extracts_raw_protobuf_response_body_and_encoding(self):
         body = "CghvcmRpbmFyeQ=="

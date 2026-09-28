@@ -171,35 +171,32 @@ class RequestExtractor:
 
         body = None
         body_param_pairs = []
+        body_param_pairs_reconciled = False
         body_encoding = None
         content_type = ""
 
-        post_data = request.get("postData")
+        post_data = request.get("postData") or {}
+        toolkit_content = request.get("_content") or {}
 
-        if post_data:
+        if not isinstance(post_data, dict):
+            post_data = {}
+        if not isinstance(toolkit_content, dict):
+            toolkit_content = {}
+
+        # Standard HAR uses postData. HTTP Toolkit stores request entities that
+        # are not directly representable as text (notably protobuf/gRPC) in the
+        # same content-shaped extension it uses for captured binary bodies.
+        if post_data.get("text") is not None:
             body = post_data.get("text")
+            body_encoding = post_data.get("encoding")
+        elif toolkit_content.get("text") is not None:
+            body = toolkit_content.get("text")
+            body_encoding = toolkit_content.get("encoding")
 
-            if body is None:
-                for param in post_data.get("params", []) or []:
-                    if not isinstance(param, dict):
-                        continue
-                    name = param.get("name", "")
-                    if name:
-                        body_param_pairs.append((name, param.get("value", "")))
-
-            body_encoding = post_data.get(
-                "encoding"
-            )
-
-            content_type = post_data.get(
-                "mimeType",
-                ""
-            )
-
-        # Some HAR files don't put mimeType inside postData.
-        # Fall back to the request Content-Type header.
-        if not content_type:
-            content_type = next(
+        content_type = (
+            post_data.get("mimeType")
+            or toolkit_content.get("mimeType")
+            or next(
                 (
                     value
                     for key, value in headers.items()
@@ -207,6 +204,41 @@ class RequestExtractor:
                 ),
                 ""
             )
+        )
+
+        if post_data:
+            param_pairs = []
+            for param in post_data.get("params", []) or []:
+                if not isinstance(param, dict):
+                    continue
+                name = param.get("name", "")
+                if name:
+                    param_pairs.append((name, param.get("value", "")))
+
+            if body is None:
+                body_param_pairs = param_pairs
+                body_param_pairs_reconciled = True
+            elif "x-www-form-urlencoded" in content_type.lower():
+                # postData.params often repeats the parsed text. Preserve only
+                # occurrences not already represented by postData.text.
+                represented = {}
+                try:
+                    text_pairs = parse_qsl(str(body), keep_blank_values=True)
+                except Exception:
+                    text_pairs = []
+                for pair in text_pairs:
+                    represented[pair] = represented.get(pair, 0) + 1
+                for pair in param_pairs:
+                    if represented.get(pair, 0):
+                        represented[pair] -= 1
+                    else:
+                        body_param_pairs.append(pair)
+                body_param_pairs_reconciled = True
+            else:
+                # For non-form bodies there is no safe generic equivalence
+                # parser. Preserve all pairs and let the detector reconcile
+                # exact parsed occurrences while retaining params-only values.
+                body_param_pairs = param_pairs
 
         body_type = self._detect_body_type(
             content_type
@@ -215,6 +247,7 @@ class RequestExtractor:
         return (
             body,
             body_param_pairs,
+            body_param_pairs_reconciled,
             body_encoding,
             content_type,
             body_type,
@@ -318,10 +351,33 @@ class RequestExtractor:
             # Query Parameters
             # -------------------------------------------------
             query_params = {}
-            query_param_pairs = parse_qsl(
+            url_query_pairs = parse_qsl(
                 parsed_url.query,
                 keep_blank_values=True
             )
+            har_query_pairs = []
+            for param in request.get("queryString", []) or []:
+                if not isinstance(param, dict):
+                    continue
+                name = param.get("name", "")
+                if name:
+                    har_query_pairs.append((name, param.get("value", "")))
+
+            # HAR normally repeats the URL query in queryString. Merge by
+            # occurrence so extension-only values are retained without
+            # duplicating the same represented occurrence.
+            query_param_pairs = list(url_query_pairs)
+            represented_query_pairs = {}
+            for pair in url_query_pairs:
+                represented_query_pairs[pair] = (
+                    represented_query_pairs.get(pair, 0) + 1
+                )
+            for pair in har_query_pairs:
+                if represented_query_pairs.get(pair, 0):
+                    represented_query_pairs[pair] -= 1
+                else:
+                    query_param_pairs.append(pair)
+
             query_param_values = {}
             for key, value in query_param_pairs:
                 query_param_values.setdefault(key, []).append(value)
@@ -334,6 +390,7 @@ class RequestExtractor:
             (
                 body,
                 body_param_pairs,
+                body_param_pairs_reconciled,
                 body_encoding,
                 content_type,
                 body_type,
@@ -400,6 +457,7 @@ class RequestExtractor:
                 query_param_values=query_param_values,
                 body=body,
                 body_param_pairs=body_param_pairs,
+                body_param_pairs_reconciled=body_param_pairs_reconciled,
                 cookies=cookies,
                 cookie_pairs=cookie_pairs,
 

@@ -100,9 +100,25 @@ class ProtobufScanner:
         body: bytes
     ) -> List[str]:
 
+        """Extract strings from one gRPC-enveloped protobuf message."""
+
+        if not body:
+
+            return []
+
+        return cls.extract_raw_strings(
+            cls._decode_grpc_frame(body)
+        )
+
+    @classmethod
+    def extract_raw_strings(
+        cls,
+        message: bytes
+    ) -> List[str]:
+
         """
-        Extract length-delimited UTF-8 strings from
-        a schema-unknown protobuf message.
+        Extract length-delimited UTF-8 strings directly from a raw,
+        schema-unknown protobuf message.
 
         Supported protobuf wire types:
 
@@ -114,13 +130,11 @@ class ProtobufScanner:
         Only wire type 2 is returned as text.
         """
 
-        if not body:
+        if not message:
 
             return []
 
-        data = cls._decode_grpc_frame(
-            body
-        )
+        data = message
 
         strings = []
 
