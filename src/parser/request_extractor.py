@@ -1,3 +1,5 @@
+import base64
+
 from urllib.parse import parse_qsl, urlparse
 from typing import List
 
@@ -223,8 +225,18 @@ class RequestExtractor:
                 # occurrences not already represented by postData.text.
                 represented = {}
                 try:
-                    text_pairs = parse_qsl(str(body), keep_blank_values=True)
-                except Exception:
+                    reconciliation_text = str(body)
+                    if str(body_encoding or "").lower() == "base64":
+                        raw = reconciliation_text.encode("ascii")
+                        if len(raw) > 8 * 1024 * 1024:
+                            raise ValueError("encoded form body exceeds limit")
+                        reconciliation_text = base64.b64decode(
+                            raw, validate=True
+                        ).decode("utf-8")
+                    text_pairs = parse_qsl(
+                        reconciliation_text, keep_blank_values=True
+                    )
+                except (UnicodeDecodeError, UnicodeEncodeError, ValueError):
                     text_pairs = []
                 for pair in text_pairs:
                     represented[pair] = represented.get(pair, 0) + 1
@@ -269,10 +281,9 @@ class RequestExtractor:
         body_encoding = None
         content_type = ""
 
-        content = response.get(
-            "content",
-            {}
-        )
+        content = response.get("content") or {}
+        if not isinstance(content, dict):
+            content = {}
 
         if content:
             body = content.get("text")
@@ -328,6 +339,11 @@ class RequestExtractor:
             parsed_url = urlparse(
                 request["url"]
             )
+            # urlparse().netloc retains ports and IPv6 brackets. Store the
+            # normalized host so traffic attribution, evidence, and policy
+            # domain matching all operate on the same value.
+            request_domain = (parsed_url.hostname or parsed_url.netloc or "")
+            request_domain = request_domain.lower().rstrip(".")
 
             # -------------------------------------------------
             # Request Headers
@@ -440,15 +456,11 @@ class RequestExtractor:
                 # Request
                 method=request["method"],
                 url=request["url"],
-                domain=parsed_url.netloc,
+                domain=request_domain,
                 status=response["status"],
-                mime_type=response.get(
-                    "content",
-                    {}
-                ).get(
-                    "mimeType",
-                    ""
-                ),
+                # Keep the historical response MIME field, but use the same
+                # content/header fallback already applied to response bodies.
+                mime_type=response_content_type,
 
                 headers=headers,
                 header_pairs=header_pairs,

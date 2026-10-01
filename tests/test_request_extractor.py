@@ -1,6 +1,8 @@
 import unittest
+import base64
 
 from src.parser.request_extractor import RequestExtractor
+from src.filter.traffic_filter import TrafficFilter
 
 
 def extract(request_fields=None, response_fields=None):
@@ -174,6 +176,21 @@ class RequestExtractorTests(unittest.TestCase):
         self.assertEqual("application/x-www-form-urlencoded", sample.content_type)
         self.assertEqual([("device_id", "params-only")], sample.body_param_pairs)
 
+    def test_reconciles_base64_form_text_with_post_data_params(self):
+        encoded = base64.b64encode(b"email=person%40example.test").decode("ascii")
+        sample = extract({"postData": {
+            "mimeType": "application/x-www-form-urlencoded",
+            "encoding": "base64",
+            "text": encoded,
+            "params": [
+                {"name": "email", "value": "person@example.test"},
+                {"name": "device_id", "value": "params-only"},
+            ],
+        }})
+
+        self.assertTrue(sample.body_param_pairs_reconciled)
+        self.assertEqual([("device_id", "params-only")], sample.body_param_pairs)
+
     def test_preserves_base64_body_encoding_metadata(self):
         sample = extract(
             {"postData": {
@@ -250,6 +267,46 @@ class RequestExtractorTests(unittest.TestCase):
         self.assertEqual("application/x-protobuf", sample.response_content_type)
         self.assertEqual("binary", sample.response_body_type)
         self.assertEqual("base64", sample.response_body_encoding)
+
+    def test_null_response_content_uses_header_mime_type(self):
+        sample = extract(
+            response_fields={
+                "content": None,
+                "headers": [{
+                    "name": "Content-Type",
+                    "value": "application/json; charset=utf-8",
+                }],
+            }
+        )
+
+        self.assertIsNone(sample.response_body)
+        self.assertEqual(
+            "application/json; charset=utf-8",
+            sample.response_content_type,
+        )
+        self.assertEqual("json", sample.response_body_type)
+        self.assertEqual(
+            "application/json; charset=utf-8",
+            sample.mime_type,
+        )
+
+    def test_request_domain_is_normalized_without_port(self):
+        sample = extract({
+            "url": "https://EXAMPLE.TEST.:8443/submit",
+        })
+        self.assertEqual("example.test", sample.domain)
+
+    def test_ipv6_request_domain_preserves_complete_address(self):
+        sample = extract({
+            "url": "https://[2001:db8::1]:8443/submit",
+        })
+        self.assertEqual("2001:db8::1", sample.domain)
+
+    def test_traffic_filter_normalizes_legacy_authority_values(self):
+        sample = extract({"url": "https://example.test/submit"})
+        sample.domain = "[2001:db8::1]:443"
+        TrafficFilter([sample]).classify_requests()
+        self.assertEqual("2001:db8::1", sample.domain)
 
 
 if __name__ == "__main__":

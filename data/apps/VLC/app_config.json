@@ -3,7 +3,7 @@
   "package": "org.videolan.vlc",
   "display_name": "VLC",
   "version": "unknown",
-  "frida_file": "Frida/vlc_evidence.json",
+  "frida_file": "Frida/frida_evidence.json",
   "har_file": "har/vlc.har",
   "policy_file": "Policy/vlc_policy.json"
 }

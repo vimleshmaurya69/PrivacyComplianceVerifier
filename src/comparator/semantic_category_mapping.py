@@ -7,6 +7,7 @@ EXACT_CATEGORY_MAPPINGS = {
     "Authentication": "Authentication",
     "Device Identifier": "Device Identifier",
     "Network Information": "Network Information",
+    "Contacts": "Contacts",
 }
 
 # These runtime findings remain evidence, but have no policy category that is
@@ -40,3 +41,8 @@ def comparable_policy_categories(observed_categories):
         for category in observed_categories
         if (policy_category := policy_category_for_observed(category))
     }
+
+
+def is_automatically_comparable_policy_category(policy_category):
+    """Whether HAR evidence can participate in automatic comparison."""
+    return policy_category in set(EXACT_CATEGORY_MAPPINGS.values())

@@ -130,6 +130,90 @@ class SensitiveDataRegressions(unittest.TestCase):
         self.assertEqual([], sample.sensitive_data)
         self.assertEqual([], detector.get_unique_findings())
 
+    def test_javascript_body_is_not_interpreted_as_form_parameters(self):
+        body = (
+            'const payload = {address: "configuration"}; '
+            'a.push("2"); metadata.number = 1234567890; '
+            f'notify("{EMAIL}");'
+        )
+        sample = request(
+            body=body,
+            body_type="binary",
+            content_type="application/javascript",
+        )
+
+        detector = SensitiveDataDetector([sample])
+        detector.analyze()
+        PrivacyNormalizer([sample]).normalize()
+
+        self.assertEqual(
+            ["Email"],
+            [finding["type"] for finding in sample.sensitive_data],
+        )
+        self.assertEqual("email", sample.sensitive_data[0]["key"])
+        self.assertNotIn("const payload", json.dumps(sample.sensitive_data))
+
+    def test_html_and_xml_form_like_text_do_not_create_key_findings(self):
+        for content_type, body in (
+            ("text/html", '<input name="address" value="enabled">'),
+            ("application/xml", '<setting address="enabled" number="1234567890"/>'),
+        ):
+            with self.subTest(content_type=content_type):
+                self.assert_clean(request(
+                    body=body,
+                    body_type="text" if content_type == "text/html" else "binary",
+                    content_type=content_type,
+                ))
+
+    def test_explicit_form_body_still_uses_structured_fields(self):
+        self.assert_artifact(
+            request(
+                body=urlencode({"phone": PHONE}),
+                body_type="form",
+                content_type="application/x-www-form-urlencoded",
+            ),
+            "Phone", "Personal Information", PHONE, "Request Body",
+            key="phone",
+        )
+
+    def test_form_field_names_are_bounded_evidence_metadata(self):
+        body = urlencode({f"raw-{EMAIL}": "ordinary", "phone": PHONE})
+        sample = request(
+            body=body,
+            body_type="form",
+            content_type="application/x-www-form-urlencoded",
+        )
+        detector = SensitiveDataDetector([sample])
+        detector.analyze()
+        self.assertTrue(any(item.get("key") == "phone" for item in sample.sensitive_data))
+        self.assertFalse(any(EMAIL in str(item.get("key")) for item in sample.sensitive_data))
+
+    def test_rate_limit_header_is_not_phone_context(self):
+        self.assert_clean(request(headers={"X-RateLimit-Reset": "1234567890"}))
+
+    def test_exact_phone_context_still_detects_plain_number(self):
+        self.assert_artifact(
+            request(headers={"Phone-Number": "2025550147"}),
+            "Phone", "Personal Information", "2025550147", "Header",
+            key="Phone-Number",
+        )
+
+    def test_dob_and_address_aliases_require_plausible_values(self):
+        self.assert_clean(request(body=json.dumps({
+            "dob": "enabled",
+            "address": "localhost",
+        })))
+        self.assert_artifact(
+            request(body=json.dumps({"dob": "1990-01-02"})),
+            "Date of Birth", "Personal Information", "1990-01-02",
+            "Request Body", key="dob",
+        )
+        self.assert_artifact(
+            request(body=json.dumps({"address": "1 Synthetic Street"})),
+            "Address", "Personal Information", "1 Synthetic Street",
+            "Request Body", key="address",
+        )
+
     def test_form_json_array_preserves_both_phone_artifacts(self):
         """_extract_body_pairs does not descend into form field JSON arrays."""
         other_phone = "+1 (202) 555-0198"
@@ -152,6 +236,53 @@ class SensitiveDataRegressions(unittest.TestCase):
         self.assert_artifact(extracted({"url": "https://example.test/search?" + urlencode({
             "q": PHONE
         })}), "Phone", "Personal Information", PHONE, "Query Parameter")
+
+    def test_semantic_version_build_suffix_is_not_a_phone(self):
+        sample = extracted({"url": "https://example.test/metrics?" + urlencode({
+            "ns_ap_sv": "9.0.48+12345678901",
+            "ns_ap_bv": "1.2.3+10987654321",
+        })})
+        self.assert_clean(sample)
+
+    def test_generic_query_name_is_not_assumed_to_be_a_person(self):
+        sample = extracted({"url": "https://example.test/features?" + urlencode({
+            "name": "configuration",
+        })})
+        self.assert_clean(sample)
+
+    def test_explicit_person_name_query_alias_remains_supported(self):
+        value = "Synthetic Person"
+        self.assert_artifact(
+            extracted({"url": "https://example.test/profile?" + urlencode({
+                "full_name": value,
+            })}),
+            "Name", "Personal Information", value, "Query Parameter",
+            key="full_name",
+        )
+
+    def test_empty_or_invalid_alias_values_are_not_evidence(self):
+        self.assert_clean(request(query_param_pairs=[
+            ("adId", ""),
+            ("access_token", ""),
+            ("csrf_token", "null"),
+            ("lat", ""),
+            ("lng", "outside"),
+            ("ip", "1"),
+            ("name", ""),
+        ]))
+
+    def test_valid_ip_and_coordinates_remain_supported(self):
+        cases = [
+            ("ip", "192.0.2.123", "IP Address", "Network Information"),
+            ("lat", "12.3456", "Latitude", "Location"),
+            ("lon", "-45.6789", "Longitude", "Location"),
+        ]
+        for key, value, artifact, category in cases:
+            with self.subTest(key=key):
+                self.assert_artifact(
+                    request(query_param_pairs=[(key, value)]),
+                    artifact, category, value, "Query Parameter", key=key,
+                )
 
     def test_query_application_contact_point_phone(self):
         self.assert_artifact(extracted({"url": "https://example.test/lookup?" + urlencode({
@@ -223,6 +354,19 @@ class SensitiveDataRegressions(unittest.TestCase):
         for body in cases:
             with self.subTest(body=body):
                 self.assert_clean(request(body=json.dumps(body)))
+
+    def test_technical_memory_address_is_not_a_postal_address(self):
+        self.assert_clean(request(body=json.dumps({
+            "app": {"execution": {"signal": {"address": "0x7ffdeadbeef"}}}
+        })))
+
+    def test_personal_context_address_remains_supported(self):
+        value = "1 Synthetic Street"
+        self.assert_artifact(
+            request(body=json.dumps({"profile": {"address": value}})),
+            "Address", "Personal Information", value, "Request Body",
+            key="profile.address",
+        )
 
     def test_array_uses_nearest_exact_parent_field(self):
         cases = [
@@ -346,6 +490,22 @@ class SensitiveDataRegressions(unittest.TestCase):
             for finding in sample.sensitive_data
         ))
 
+    def test_base64_form_text_and_params_do_not_duplicate_evidence(self):
+        form_text = urlencode({"email": EMAIL})
+        sample = extracted({"postData": {
+            "mimeType": "application/x-www-form-urlencoded",
+            "encoding": "base64",
+            "text": base64.b64encode(form_text.encode("utf-8")).decode("ascii"),
+            "params": [{"name": "email", "value": EMAIL}],
+        }})
+        SensitiveDataDetector([sample]).analyze()
+
+        self.assertEqual(1, sum(
+            finding.get("type") == "Email"
+            and finding.get("source") == "Request Body"
+            for finding in sample.sensitive_data
+        ))
+
     def test_reconciled_form_params_preserve_excess_identical_occurrence(self):
         sample = extracted({"postData": {
             "mimeType": "application/x-www-form-urlencoded",
@@ -384,6 +544,20 @@ class SensitiveDataRegressions(unittest.TestCase):
             and item.get("type") == "Device ID"
             for item in evidence
         ))
+
+    def test_cookie_header_and_cookie_array_are_one_parser_occurrence(self):
+        sample = extracted({
+            "headers": [{"name": "Cookie", "value": f"contact={EMAIL}"}],
+            "cookies": [{"name": "contact", "value": EMAIL}],
+        })
+        SensitiveDataDetector([sample]).analyze()
+
+        self.assertEqual(1, sum(
+            finding.get("type") == "Email"
+            and finding.get("direction") == "outbound"
+            for finding in sample.sensitive_data
+        ))
+        self.assertEqual("Cookie", sample.sensitive_data[0]["source"])
 
     def test_compatibility_query_view_does_not_duplicate_pair_evidence(self):
         sample = request(
@@ -678,6 +852,29 @@ class SensitiveDataRegressions(unittest.TestCase):
             "Email", "Personal Information", EMAIL, "gRPC Body",
         )
 
+    def test_multipart_protobuf_preserves_utf8_bytes_before_email(self):
+        unicode_value = "café".encode("utf-8")
+        email_value = EMAIL.encode("utf-8")
+        message = (
+            bytes([0x0A, len(unicode_value)]) + unicode_value
+            + bytes([0x12, len(email_value)]) + email_value
+        )
+        boundary = "protobuf-byte-boundary"
+        body = (
+            b"--" + boundary.encode("ascii")
+            + b"\r\nContent-Type: application/x-protobuf\r\n\r\n"
+            + message
+            + b"\r\n--" + boundary.encode("ascii") + b"--\r\n"
+        )
+        self.assert_artifact(
+            request(
+                body=body,
+                body_type="binary",
+                content_type=f"multipart/related; boundary={boundary}",
+            ),
+            "Email", "Personal Information", EMAIL, "Protobuf Body",
+        )
+
     def test_raw_protobuf_request_email(self):
         body = protobuf_string(1, EMAIL).decode("latin-1")
         self.assert_artifact(
@@ -907,6 +1104,41 @@ class SensitiveDataRegressions(unittest.TestCase):
             or finding.get("key") == "protobuf_string"
             for finding in sample.sensitive_data
         ))
+
+    def test_octet_stream_is_not_free_text_scanned(self):
+        self.assert_clean(request(
+            body=(b"binary-prefix " + EMAIL.encode("ascii")),
+            body_type="binary",
+            content_type="application/octet-stream",
+        ))
+
+    def test_empty_headers_and_placeholder_session_cookies_are_clean(self):
+        self.assert_clean(request(
+            header_pairs=[("Authorization", "")],
+            cookie_pairs=[
+                ("session", ""),
+                ("session_enabled", "false"),
+                ("session_count", "0"),
+            ],
+            response_header_pairs=[("Authorization", "")],
+            response_cookie_pairs=[("session", "false")],
+        ))
+
+    def test_protobuf_phone_requires_standalone_international_number(self):
+        detector = SensitiveDataDetector([])
+        findings = []
+        detector._analyze_protobuf_strings(
+            ["version9.0.48+12345678901", "+1 (202) 555-0147"],
+            findings,
+            "Protobuf Body",
+        )
+
+        phones = [
+            finding.get("_raw_value")
+            for finding in findings
+            if finding.get("type") == "Phone"
+        ]
+        self.assertEqual(["+1 (202) 555-0147"], phones)
 
     # Passing controls prevent fixing false negatives by indiscriminate flagging.
     def test_control_generic_query_exact_email(self):

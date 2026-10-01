@@ -1,10 +1,38 @@
 {
+    "schema_version": 2,
+    "application": "Truecaller",
     "app": "Truecaller",
     "package": "com.truecaller",
     "policy_available": true,
     "source": "https://www.truecaller.com/privacy-policy",
     "privacy_summary_source": "https://www.truecaller.com/privacy-summary-india",
-    "last_verified": "2026-09-11",
+    "last_verified": "2026-09-28",
+    "review_history": [
+        "2026-09-11",
+        "2026-09-28"
+    ],
+    "policy_updated_at": "2026-07-03",
+    "sources": [
+        {
+            "source_id": "truecaller-primary-policy",
+            "type": "privacy_policy",
+            "url": "https://www.truecaller.com/privacy-policy",
+            "title": "Truecaller Privacy Policy",
+            "metadata": {
+                "policy_updated_at": "2026-07-03",
+                "reviewed_at": "2026-09-28"
+            }
+        },
+        {
+            "source_id": "truecaller-india-summary",
+            "type": "privacy_summary",
+            "url": "https://www.truecaller.com/privacy-summary-india",
+            "title": "Truecaller Privacy Summary for India",
+            "metadata": {
+                "reviewed_at": "2026-09-28"
+            }
+        }
+    ],
     "policy_scope": [
         "Truecaller app",
         "Truecaller website and other Services"
@@ -23,6 +51,230 @@
         "Authentication",
         "Usage Data",
         "Cookies"
+    ],
+    "policy_practices": [
+        {
+            "practice_id": "truecaller-phone-receive",
+            "privacy_category": "Personal Information",
+            "artifact_types": [
+                "Phone"
+            ],
+            "action": "collect",
+            "recipient_scope": "unknown",
+            "recipient_domains": [],
+            "provenance": {
+                "source_ids": [
+                    "truecaller-primary-policy"
+                ],
+                "source_type": "privacy_policy",
+                "source_url": "https://www.truecaller.com/privacy-policy",
+                "locator": "Section 1.1, User Profile, first paragraph",
+                "evidence": "Truecaller states that it collects information provided when a user creates a profile and requires registration of a phone number.",
+                "reviewed_at": "2026-09-28"
+            },
+            "verification": {
+                "state": "VERIFIED",
+                "reviewed_at": "2026-09-28"
+            },
+            "coverage": "PARTIAL"
+        },
+        {
+            "practice_id": "truecaller-device-id-receive",
+            "privacy_category": "Device Identifier",
+            "artifact_types": [
+                "Device ID"
+            ],
+            "action": "collect",
+            "recipient_scope": "unknown",
+            "recipient_domains": [],
+            "provenance": {
+                "source_ids": [
+                    "truecaller-primary-policy"
+                ],
+                "source_type": "privacy_policy",
+                "source_url": "https://www.truecaller.com/privacy-policy",
+                "locator": "Section 1.2, Installation and Use, second paragraph",
+                "evidence": "Truecaller states that information collected during installation and use may include a device ID or unique identifier.",
+                "reviewed_at": "2026-09-28"
+            },
+            "verification": {
+                "state": "VERIFIED",
+                "reviewed_at": "2026-09-28"
+            },
+            "coverage": "PARTIAL"
+        },
+        {
+            "practice_id": "truecaller-ip-address-receive",
+            "privacy_category": "Network Information",
+            "artifact_types": [
+                "IP Address"
+            ],
+            "action": "collect",
+            "recipient_scope": "unknown",
+            "recipient_domains": [],
+            "provenance": {
+                "source_ids": [
+                    "truecaller-primary-policy"
+                ],
+                "source_type": "privacy_policy",
+                "source_url": "https://www.truecaller.com/privacy-policy",
+                "locator": "Section 1.2, Installation and Use, second paragraph",
+                "evidence": "Truecaller states that information collected during installation and use may include an IP address and connection information.",
+                "reviewed_at": "2026-09-28"
+            },
+            "verification": {
+                "state": "VERIFIED",
+                "reviewed_at": "2026-09-28"
+            },
+            "coverage": "PARTIAL"
+        },
+        {
+            "practice_id": "truecaller-location-receive",
+            "privacy_category": "Location",
+            "artifact_types": [
+                "Location"
+            ],
+            "action": "collect",
+            "recipient_scope": "unknown",
+            "recipient_domains": [],
+            "provenance": {
+                "source_ids": [
+                    "truecaller-primary-policy"
+                ],
+                "source_type": "privacy_policy",
+                "source_url": "https://www.truecaller.com/privacy-policy",
+                "locator": "Section 1.2, Installation and Use, second paragraph",
+                "evidence": "Truecaller states that information collected during installation and use may include geo-location.",
+                "reviewed_at": "2026-09-28"
+            },
+            "verification": {
+                "state": "VERIFIED",
+                "reviewed_at": "2026-09-28"
+            },
+            "coverage": "PARTIAL"
+        },
+        {
+            "practice_id": "truecaller-location-verified-business-transmit",
+            "privacy_category": "Location",
+            "artifact_types": [
+                "Location"
+            ],
+            "action": "share",
+            "recipient_scope": "third_party",
+            "recipient_domains": [],
+            "provenance": {
+                "source_ids": [
+                    "truecaller-primary-policy"
+                ],
+                "source_type": "privacy_policy",
+                "source_url": "https://www.truecaller.com/privacy-policy",
+                "locator": "Section 2.1 item 12 and Section 3, Sharing and Disclosure of Personal Information",
+                "evidence": "Truecaller states that selected delivery or service-request information, including optional location data or coordinates, is transmitted to the respective verified business.",
+                "reviewed_at": "2026-09-28"
+            },
+            "verification": {
+                "state": "VERIFIED",
+                "reviewed_at": "2026-09-28"
+            },
+            "coverage": "PARTIAL"
+        }
+    ],
+    "comparison_coverage": [
+        {
+            "coverage_id": "truecaller-phone-receive-coverage",
+            "privacy_category": "Personal Information",
+            "artifact_types": [
+                "Phone"
+            ],
+            "action": "collect",
+            "recipient_scope": "unknown",
+            "recipient_domains": [],
+            "state": "UNKNOWN",
+            "provenance": {
+                "source_ids": [
+                    "truecaller-primary-policy"
+                ],
+                "locator": "Section 1.1, User Profile, first paragraph",
+                "evidence": "The statement verifies phone-number collection but does not establish complete recipient-scope coverage.",
+                "reviewed_at": "2026-09-28"
+            }
+        },
+        {
+            "coverage_id": "truecaller-device-id-receive-coverage",
+            "privacy_category": "Device Identifier",
+            "artifact_types": [
+                "Device ID"
+            ],
+            "action": "collect",
+            "recipient_scope": "unknown",
+            "recipient_domains": [],
+            "state": "UNKNOWN",
+            "provenance": {
+                "source_ids": [
+                    "truecaller-primary-policy"
+                ],
+                "locator": "Section 1.2, Installation and Use, second paragraph",
+                "evidence": "The statement verifies device-identifier collection but does not establish complete recipient-scope coverage.",
+                "reviewed_at": "2026-09-28"
+            }
+        },
+        {
+            "coverage_id": "truecaller-ip-address-receive-coverage",
+            "privacy_category": "Network Information",
+            "artifact_types": [
+                "IP Address"
+            ],
+            "action": "collect",
+            "recipient_scope": "unknown",
+            "recipient_domains": [],
+            "state": "UNKNOWN",
+            "provenance": {
+                "source_ids": [
+                    "truecaller-primary-policy"
+                ],
+                "locator": "Section 1.2, Installation and Use, second paragraph",
+                "evidence": "The statement verifies IP-address collection but does not establish complete recipient-scope coverage.",
+                "reviewed_at": "2026-09-28"
+            }
+        },
+        {
+            "coverage_id": "truecaller-location-receive-coverage",
+            "privacy_category": "Location",
+            "artifact_types": [
+                "Location"
+            ],
+            "action": "collect",
+            "recipient_scope": "unknown",
+            "recipient_domains": [],
+            "state": "UNKNOWN",
+            "provenance": {
+                "source_ids": [
+                    "truecaller-primary-policy"
+                ],
+                "locator": "Section 1.2, Installation and Use, second paragraph",
+                "evidence": "The statement verifies geo-location collection but does not establish complete recipient-scope coverage.",
+                "reviewed_at": "2026-09-28"
+            }
+        },
+        {
+            "coverage_id": "truecaller-location-verified-business-transmit-coverage",
+            "privacy_category": "Location",
+            "artifact_types": [
+                "Location"
+            ],
+            "action": "share",
+            "recipient_scope": "third_party",
+            "recipient_domains": [],
+            "state": "PARTIAL",
+            "provenance": {
+                "source_ids": [
+                    "truecaller-primary-policy"
+                ],
+                "locator": "Section 2.1 item 12 and Section 3, Sharing and Disclosure of Personal Information",
+                "evidence": "The source verifies one optional verified-business location workflow but does not establish exhaustive coverage of all location transmissions.",
+                "reviewed_at": "2026-09-28"
+            }
+        }
     ],
     "declared_practices": [
         {

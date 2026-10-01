@@ -1,6 +1,8 @@
 import json
 from pathlib import Path
 
+from src.policy.policy_models import normalize_policy_document
+
 
 class PrivacyPolicyParser:
 
@@ -17,16 +19,7 @@ class PrivacyPolicyParser:
             return json.load(file)
 
     def parse(self):
-
-        policy = self.load()
-
-        return {
-            "app": policy.get("app", "Unknown"),
-            "sources": policy.get("sources", []),
-            "declared_practices": policy.get(
-                "declared_practices", []
-            )
-        }
+        return normalize_policy_document(self.load())
 
 
 if __name__ == "__main__":
@@ -41,14 +34,14 @@ if __name__ == "__main__":
     print("Privacy Evidence Parser")
     print("=" * 60)
 
-    print(f"App : {policy['app']}")
+    print(f"App : {policy['application']}")
 
     print("\nEvidence Sources:")
 
     for source in policy["sources"]:
         print(
-            f" - {source['type']} : "
-            f"{source['source']}"
+            f" - {source.get('type', 'unknown')} : "
+            f"{source.get('source') or source.get('url', 'unknown')}"
         )
 
     print("\nDeclared Practices:")
@@ -58,10 +51,10 @@ if __name__ == "__main__":
         for practice in policy["declared_practices"]:
 
             print(
-                f" - {practice['data']} "
-                f"| {practice['category']} "
-                f"| {practice['purpose']} "
-                f"| {practice['source_type']}"
+                f" - {practice.get('data') or practice.get('data_type', 'Unknown')} "
+                f"| {practice.get('category', 'Unknown')} "
+                f"| {practice.get('purpose', 'Unknown')} "
+                f"| {practice.get('source_type') or practice.get('source', 'Unknown')}"
             )
 
     else:

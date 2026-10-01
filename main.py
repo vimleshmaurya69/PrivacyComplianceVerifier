@@ -12,7 +12,11 @@ from src.analyzer.privacy_normalizer import PrivacyNormalizer
 from src.analyzer.privacy_inventory import PrivacyInventoryGenerator
 from src.exporter.json_exporter import JSONExporter
 from src.comparator.policy_comparator import PolicyComparator
+from src.policy.policy_parser import PrivacyPolicyParser
 from src.utils.privacy_taxonomy import PRIVACY_CATEGORY_MAP
+from src.comparator.semantic_category_mapping import (
+    NON_COMPARABLE_OBSERVED_CATEGORIES,
+)
 
 
 def main(app_name):
@@ -191,25 +195,29 @@ def main(app_name):
     frida_evidence = {}
     frida_observations = []
 
-    if policy_file.exists():
+    frida_path = app_manager.get_frida_file()
 
-        frida_path = policy_file.parent.parent / "frida" / "frida_evidence.json"
+    if frida_path.exists():
 
-        if frida_path.exists():
+        try:
+            with open(frida_path, "r", encoding="utf-8") as file:
+                frida_evidence = json.load(file)
 
-            try:
-                with open(frida_path, "r", encoding="utf-8") as file:
-                    frida_evidence = json.load(file)
+            raw_frida_observations = frida_evidence.get("observations", [])
+            if isinstance(raw_frida_observations, list):
+                frida_observations = [
+                    observation
+                    for observation in raw_frida_observations
+                    if (
+                        isinstance(observation, dict)
+                        and observation.get("status") == "observed"
+                    )
+                ]
 
-                frida_observations = frida_evidence.get("observations", [])
-
-                if not isinstance(frida_observations, list):
-                    frida_observations = []
-
-            except Exception as e:
-                print(f"[WARNING] Frida evidence could not be loaded: {e}")
-                frida_evidence = {}
-                frida_observations = []
+        except Exception as e:
+            print(f"[WARNING] Frida evidence could not be loaded: {e}")
+            frida_evidence = {}
+            frida_observations = []
 
     # ==================================================
     # Overall Statistics
@@ -247,6 +255,42 @@ def main(app_name):
         # Unique artifacts = distinct sensitive values grouped by fingerprint.
         "unique_sensitive_artifacts": len(unique_sensitive_artifacts),
         "sensitive_data_findings": sum(len(r.sensitive_data) for r in requests),
+        "comparison_outbound_occurrences": sum(
+            1
+            for request in requests
+            for finding in request.sensitive_data
+            if (
+                request.traffic_type in {"Application", "Third Party"}
+                and finding.get("direction") == "outbound"
+                and finding.get("privacy_category")
+                not in NON_COMPARABLE_OBSERVED_CATEGORIES
+            )
+        ),
+        "attributable_inbound_occurrences": sum(
+            1
+            for request in requests
+            for finding in request.sensitive_data
+            if (
+                request.traffic_type in {"Application", "Third Party"}
+                and finding.get("direction") == "inbound"
+            )
+        ),
+        "excluded_technical_occurrences": sum(
+            1
+            for request in requests
+            for finding in request.sensitive_data
+            if (
+                request.traffic_type in {"Application", "Third Party"}
+                and finding.get("direction") == "outbound"
+                and finding.get("privacy_category")
+                in NON_COMPARABLE_OBSERVED_CATEGORIES
+            )
+        ),
+        "non_attributable_occurrences": sum(
+            len(request.sensitive_data)
+            for request in requests
+            if request.traffic_type not in {"Application", "Third Party"}
+        ),
         "sensitive_findings_by_traffic": (sensitive_findings_by_traffic),
         "sensitive_findings_by_category": (sensitive_findings_by_category),
         "unique_artifacts_by_category": (unique_artifacts_by_category),
@@ -282,16 +326,14 @@ def main(app_name):
             # Load Policy Evidence
             # ------------------------------------------
 
-            with open(policy_file, "r", encoding="utf-8") as file:
-
-                policy_data = json.load(file)
+            policy_data = PrivacyPolicyParser(policy_file).parse()
 
             # ------------------------------------------
             # Frida Evidence Status
             # ------------------------------------------
 
             if frida_evidence:
-                print("[✓] Frida evidence loaded.")
+                print("[OK] Frida evidence loaded.")
             else:
                 print("[i] No Frida evidence found.")
 
@@ -308,19 +350,37 @@ def main(app_name):
             # ------------------------------------------
 
             compliance_results = comparator.compare()
+            category_results = comparator.compare_categories()
 
-            compliance_summary = comparator.generate_summary(compliance_results)
+            compliance_summary = comparator.generate_summary(
+                compliance_results, category_results
+            )
 
             # ------------------------------------------
             # Build Compliance Report
             # ------------------------------------------
 
             compliance_report = {
+                "schema_version": 2,
                 "application": app_name,
                 "observed_categories": sorted(comparator.get_observed_categories()),
+                "comparison_observed_categories": sorted(
+                    comparator.get_comparison_har_categories()
+                ),
                 "frida_categories": sorted(comparator.get_frida_categories()),
+                "runtime_observations": comparator.get_runtime_observations(),
                 "declared_categories": sorted(comparator.get_declared_categories()),
+                "observed_practices": comparator.get_observed_practices(),
+                "policy_practices": comparator.get_policy_practices(),
+                "comparison_coverage": comparator.get_comparison_coverage(),
+                "policy_quality": comparator.get_policy_quality(),
                 "results": compliance_results,
+                "category_results": category_results,
+                "practice_risks": comparator.get_practice_risks(),
+                "excluded_non_attributable_evidence": (
+                    comparator.get_non_attributable_evidence()
+                ),
+                "inbound_evidence": comparator.get_inbound_evidence(),
                 "summary": compliance_summary,
             }
 
@@ -332,9 +392,13 @@ def main(app_name):
 
             with open(compliance_path, "w", encoding="utf-8") as file:
 
-                json.dump(compliance_report, file, indent=4)
+                json.dump(
+                    exporter.sanitize_evidence_document(compliance_report),
+                    file,
+                    indent=4,
+                )
 
-            print("[✓] compliance_results.json exported")
+            print("[OK] compliance_results.json exported")
 
         except Exception as e:
 
@@ -374,6 +438,22 @@ def main(app_name):
 
     print(f"Sensitive Data Occurrences   : " f"{statistics['sensitive_data_occurrences']}")
     print(f"Unique Sensitive Artifacts   : " f"{statistics['unique_sensitive_artifacts']}")
+    print(
+        f"Comparable Outbound Findings : "
+        f"{statistics['comparison_outbound_occurrences']}"
+    )
+    print(
+        f"Attributable Inbound Findings: "
+        f"{statistics['attributable_inbound_occurrences']}"
+    )
+    print(
+        f"Excluded Technical Findings  : "
+        f"{statistics['excluded_technical_occurrences']}"
+    )
+    print(
+        f"Non-Attributable Findings    : "
+        f"{statistics['non_attributable_occurrences']}"
+    )
 
     print("\nSensitive Findings by Traffic Type")
 
@@ -423,22 +503,53 @@ def main(app_name):
             print(f"   - {category}")
 
     # ==================================================
-    # Compliance Summary
+    # Privacy Assessment Summary
     # ==================================================
 
     if compliance_summary is not None:
 
-        print("\nCompliance Summary")
-
-        print(f"Compliant              : " f"{compliance_summary['compliant']}")
+        print("\nPrivacy Assessment Summary")
 
         print(
-            f"Potential Mismatches   : " f"{compliance_summary['potential_mismatches']}"
+            f"Practices Disclosed    : "
+            f"{compliance_summary['practice_disclosed']}"
         )
 
-        print(f"Not Observed           : " f"{compliance_summary['not_observed']}")
+        print(
+            f"Information Disclosed: "
+            f"{compliance_summary['information_type_disclosed']}"
+        )
+
+        print(
+            f"Potential Non-Disclosure: "
+            f"{compliance_summary['potential_non_disclosures']}"
+        )
+
+        print(
+            f"Insufficient Policy Detail: "
+            f"{compliance_summary['insufficient_policy_detail']}"
+        )
+
+        print(
+            f"Not Observed in Capture: "
+            f"{compliance_summary['not_observed_in_capture']}"
+        )
+
+        print(
+            f"Not Assessable from HAR: "
+            f"{compliance_summary['not_assessable_from_har']}"
+        )
 
         print(f"Overall Status         : " f"{compliance_summary['overall_status']}")
+        print(
+            f"Compliance Determination: "
+            f"{compliance_summary['compliance_determination']}"
+        )
+
+        if compliance_summary["assessment_flags"]:
+            print("Assessment Flags:")
+            for flag in compliance_summary["assessment_flags"]:
+                print(f"   - {flag}")
 
     # ==================================================
     # Output Files

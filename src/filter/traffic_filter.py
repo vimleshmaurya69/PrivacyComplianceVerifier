@@ -68,9 +68,16 @@ class TrafficFilter:
 
         domain = domain.rstrip(".")
 
-        # Remove a numeric port from normal hostname:port values.
-        # Do not attempt this for IPv6 addresses.
-        if domain.count(":") == 1:
+        # Remove brackets and an optional numeric port from IPv6 authorities.
+        if domain.startswith("[") and "]" in domain:
+            closing = domain.find("]")
+            host = domain[1:closing]
+            suffix = domain[closing + 1:]
+            if not suffix or (suffix.startswith(":") and suffix[1:].isdigit()):
+                domain = host
+        # Remove a numeric port from normal hostname:port values. Bare IPv6
+        # addresses contain multiple colons and remain unchanged.
+        elif domain.count(":") == 1:
             host, port = domain.rsplit(":", 1)
             if port.isdigit():
                 domain = host
@@ -134,6 +141,7 @@ class TrafficFilter:
     def classify_requests(self) -> List[Request]:
         for request in self.requests:
             domain = self.normalize_domain(request.domain)
+            request.domain = domain
 
             # 1. Application Services
             if self.matches_any_pattern(

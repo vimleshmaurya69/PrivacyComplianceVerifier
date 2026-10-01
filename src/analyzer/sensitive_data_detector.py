@@ -2,9 +2,12 @@ import base64
 import gzip
 import hashlib
 import io
+import ipaddress
 import json
+import math
 import re
 import zlib
+from datetime import date, datetime
 
 from typing import Any, Dict, List
 from urllib.parse import parse_qsl, unquote, urlsplit
@@ -102,11 +105,38 @@ class SensitiveDataDetector:
             "type": finding_type,
             "source": source,
             "direction": direction,
-            "key": key,
+            "key": self._safe_evidence_key(key),
             "value_redacted": self.redact_value(value),
             "_raw_value": value,
             "_occurrence_id": occurrence_id,
         }
+
+    def _safe_evidence_key(self, key):
+        """Preserve field context without exporting a value-shaped key.
+
+        JSON objects occasionally use user-controlled identifiers as property
+        names.  Those names are evidence metadata in this framework, so an
+        email address, phone number, URL credential, or pathologically long
+        dynamic key must not become an unredacted export channel.
+        """
+        if key is None:
+            return None
+        text = str(key)
+        if len(text) > 256 or self._find_emails(text):
+            return "[REDACTED_DYNAMIC_KEY]"
+        if re.search(r"(?<!\d)\+?\d[\d .()\-]{8,14}\d(?!\d)", text):
+            candidate = re.search(
+                r"(?<!\d)(\+?\d[\d .()\-]{8,14}\d)(?!\d)", text
+            )
+            if candidate and self._is_phone_number(candidate.group(1)):
+                return "[REDACTED_DYNAMIC_KEY]"
+        try:
+            parsed = urlsplit(text)
+            if parsed.scheme and (parsed.username is not None or parsed.password is not None):
+                return "[REDACTED_DYNAMIC_KEY]"
+        except ValueError:
+            return "[REDACTED_DYNAMIC_KEY]"
+        return key
 
     # --------------------------------------------------
     # Unique artifact aggregation
@@ -432,7 +462,7 @@ class SensitiveDataDetector:
     # Key-based classification
     # --------------------------------------------------
 
-    def _classify_key_value(self, key, value):
+    def _classify_key_value(self, key, value, allow_ambiguous_name=True):
 
         normalized_key = self._normalize_key(key)
         key_candidates = {normalized_key}
@@ -490,15 +520,19 @@ class SensitiveDataDetector:
                 return "User ID"
 
         # Location
-        if key_candidates & {"lat", "latitude"}:
+        if key_candidates & {"lat", "latitude"} and self._is_coordinate(value, 90):
             return "Latitude"
-        if key_candidates & {"lon", "lng", "longitude"}:
+        if key_candidates & {"lon", "lng", "longitude"} and self._is_coordinate(value, 180):
             return "Longitude"
 
         # Explicit personal-name fields are unambiguous enough to recognize at
         # any nesting depth. A bare nested `name` is ambiguous (for example,
         # config.name or error.name), so require person-related path context.
-        if key_candidates & {"full_name", "fullname", "first_name", "last_name"}:
+        name_value_present = value is not None and bool(str(value).strip())
+        if (
+            key_candidates & {"full_name", "fullname", "first_name", "last_name"}
+            and name_value_present
+        ):
             return "Name"
 
         leaf_key = (
@@ -507,7 +541,7 @@ class SensitiveDataDetector:
             else normalized_key
         )
         if leaf_key == "name":
-            if len(path_parts) <= 1:
+            if len(path_parts) <= 1 and allow_ambiguous_name and name_value_present:
                 return "Name"
 
             personal_contexts = {
@@ -518,14 +552,31 @@ class SensitiveDataDetector:
                 self._normalize_key(part)
                 for part in path_parts[:-1]
             }
-            if parent_contexts & personal_contexts:
+            if parent_contexts & personal_contexts and name_value_present:
                 return "Name"
 
-        if key_candidates & {"date_of_birth", "dateofbirth", "dob", "birth_date"}:
+        if (
+            key_candidates & {"date_of_birth", "dateofbirth", "dob", "birth_date"}
+            and self._is_date_of_birth(value)
+        ):
             return "Date of Birth"
         if key_candidates & {"address", "street_address", "postal_address"}:
-            return "Address"
-        if key_candidates & {"ip_address", "ipaddress", "ip"}:
+            technical_address_contexts = {
+                "execution", "exception", "frame", "instruction", "memory",
+                "native", "signal", "stack", "stacktrace", "thread",
+            }
+            parent_contexts = {
+                self._normalize_key(part)
+                for part in path_parts[:-1]
+            }
+            if leaf_key == "address" and parent_contexts & technical_address_contexts:
+                return None
+            if self._is_postal_address(value):
+                return "Address"
+        if (
+            key_candidates & {"ip_address", "ipaddress", "ip"}
+            and self._is_ip_address(value)
+        ):
             return "IP Address"
 
         if any(self._looks_like_api_key(candidate, value) for candidate in key_candidates):
@@ -537,7 +588,7 @@ class SensitiveDataDetector:
             "accesstoken", "refresh_token", "refreshtoken",
             "bearer_token", "bearertoken", "token", "token_v2",
         }
-        if key_candidates & auth_keys:
+        if key_candidates & auth_keys and self._has_identifier_value(value):
             return "Authorization Token"
 
         # CSRF/security tokens are distinct from authentication credentials.
@@ -545,7 +596,7 @@ class SensitiveDataDetector:
             "csrf_token", "csrftoken", "csrf", "fb_dtsg", "dtsg",
             "xsrf_token", "xsrftoken", "xsrf",
         }
-        if key_candidates & csrf_keys:
+        if key_candidates & csrf_keys and self._has_identifier_value(value):
             return "CSRF Token"
 
         # Device identifiers
@@ -553,7 +604,7 @@ class SensitiveDataDetector:
             "device_id", "deviceid", "android_id", "androidid",
             "advertising_id", "advertisingid", "ad_id", "adid", "datr",
         }
-        if key_candidates & device_id_keys:
+        if key_candidates & device_id_keys and self._has_identifier_value(value):
             return "Device ID"
 
         return None
@@ -619,14 +670,72 @@ class SensitiveDataDetector:
         return results
 
     def _phone_context(self, key: Any) -> bool:
-        normalized = self._normalize_key(key)
-        return (
-            len(normalized) <= 80
-            and bool(re.fullmatch(r"[a-z0-9_.\[\]-]+", normalized))
-            and bool(re.search(
-                r"(?:phone|mobile|telephone|tel|contact|msisdn|caller|recipient|number)",
-                normalized,
-            ))
+        """Return whether a field name is an explicit phone-number alias.
+
+        Substring matching is deliberately avoided: technical fields such as
+        ``x-ratelimit-reset`` contain ``tel`` but are not phone contexts.
+        Nested paths may use an exact leaf alias (for example
+        ``profile.phone``), while compound aliases remain exact.
+        """
+        raw_key = str(key or "")
+        normalized = self._normalize_key(raw_key)
+        if not normalized or len(normalized) > 80:
+            return False
+
+        aliases = {
+            "phone", "phone_number", "phonenumber", "mobile",
+            "mobile_number", "mobilenumber", "telephone",
+            "telephone_number", "contact_number", "contactnumber",
+            "contact_point", "contactpoint", "msisdn", "caller",
+            "caller_number", "recipient_number",
+        }
+        if normalized in aliases:
+            return True
+
+        path_parts = [
+            self._normalize_key(part)
+            for part in re.split(r"[.\[\]]+", raw_key)
+            if part
+        ]
+        return bool(path_parts and path_parts[-1] in aliases)
+
+    @staticmethod
+    def _is_date_of_birth(value: Any) -> bool:
+        """Accept conservative date-shaped birth-date values only."""
+        if value is None:
+            return False
+        text = str(value).strip()
+        if not text or len(text) > 32:
+            return False
+
+        parsed = None
+        for pattern in ("%Y-%m-%d", "%Y/%m/%d", "%d-%m-%Y", "%d/%m/%Y"):
+            try:
+                parsed = datetime.strptime(text, pattern).date()
+                break
+            except ValueError:
+                continue
+        if parsed is None:
+            return False
+
+        today = date.today()
+        return date(1900, 1, 1) <= parsed <= today
+
+    @staticmethod
+    def _is_postal_address(value: Any) -> bool:
+        """Reject empty, technical, and single-token address-like values."""
+        if value is None:
+            return False
+        text = str(value).strip()
+        if len(text) < 5 or len(text) > 512:
+            return False
+        if re.fullmatch(r"0x[0-9a-f]+", text, re.IGNORECASE):
+            return False
+        if any(character in text for character in "\r\n\x00"):
+            return False
+        return bool(
+            re.search(r"[A-Za-z]", text)
+            and re.search(r"(?:\s|,)", text)
         )
 
     def _analyze_text_signals(self, value: Any, findings, source, key,
@@ -649,7 +758,10 @@ class SensitiveDataDetector:
         # International phone numbers have a strong lexical signal. Plain
         # 10-15 digit numbers are accepted only when the field is contextual.
         if allow_phone:
-            international_candidates = re.findall(r"\+\d[\d .()\-]{8,14}\d", text)
+            international_candidates = re.findall(
+                r"(?<![A-Za-z0-9.])\+\d[\d .()\-]{8,14}\d(?!\d)",
+                text,
+            )
             plain_candidates = (
                 re.findall(r"(?<!\d)\d{10,15}(?!\d)", text)
                 if phone_context else []
@@ -848,9 +960,19 @@ class SensitiveDataDetector:
                 if item == "base64":
                     decoded = base64.b64decode(decoded, validate=True)
                 elif item in {"gzip", "x-gzip"}:
-                    decoded = self._decompress_limited(decoded, item)
+                    # HAR producers commonly expose an already decompressed
+                    # entity while retaining the original Content-Encoding
+                    # response header.  Only decompress bytes that still have
+                    # the gzip framing signature.
+                    if decoded.startswith(b"\x1f\x8b"):
+                        decoded = self._decompress_limited(decoded, item)
                 elif item == "deflate":
-                    decoded = self._decompress_limited(decoded, item)
+                    try:
+                        decoded = self._decompress_limited(decoded, item)
+                    except Exception:
+                        # As with gzip, a stale HAR header must not discard an
+                        # already decoded protobuf/gRPC entity.
+                        pass
                 if len(decoded) > self._MAX_DECODED_BODY_BYTES:
                     return None
             except Exception:
@@ -948,6 +1070,34 @@ class SensitiveDataDetector:
 
         return True
 
+    @staticmethod
+    def _has_identifier_value(value: Any, min_length=8, max_length=4096) -> bool:
+        """Reject empty/placeholder aliases that do not transmit an identifier."""
+        if value is None:
+            return False
+        text = str(value).strip()
+        if len(text) < min_length or len(text) > max_length:
+            return False
+        if text.lower() in {"null", "none", "unknown", "undefined"}:
+            return False
+        return any(character.isalnum() for character in text)
+
+    @staticmethod
+    def _is_coordinate(value: Any, maximum: float) -> bool:
+        try:
+            coordinate = float(str(value).strip())
+        except (TypeError, ValueError):
+            return False
+        return math.isfinite(coordinate) and -maximum <= coordinate <= maximum
+
+    @staticmethod
+    def _is_ip_address(value: Any) -> bool:
+        try:
+            ipaddress.ip_address(str(value).strip())
+        except ValueError:
+            return False
+        return True
+
     # --------------------------------------------------
     # Structured body extraction
     # --------------------------------------------------
@@ -1039,11 +1189,33 @@ class SensitiveDataDetector:
             return []
 
         parts = []
-        body_text = str(body)
-        boundary_line = re.compile(
-            rf"(?m)^--{re.escape(boundary)}(--)?[ \t]*(?:\r?\n|$)"
-        )
-        boundaries = boundary_line.finditer(body_text)
+        is_bytes = isinstance(body, (bytes, bytearray))
+        if is_bytes:
+            try:
+                boundary_token = re.escape(boundary.encode("ascii"))
+            except UnicodeEncodeError:
+                return []
+            body_value = bytes(body)
+            boundary_line = re.compile(
+                rb"(?m)^--" + boundary_token + rb"(--)?[ \t]*(?:\r?\n|$)"
+            )
+            empty = b""
+            crlf = b"\r\n"
+            lf = b"\n"
+            header_separator = b"\r\n\r\n"
+            alternate_separator = b"\n\n"
+        else:
+            body_value = str(body)
+            boundary_line = re.compile(
+                rf"(?m)^--{re.escape(boundary)}(--)?[ \t]*(?:\r?\n|$)"
+            )
+            empty = ""
+            crlf = "\r\n"
+            lf = "\n"
+            header_separator = "\r\n\r\n"
+            alternate_separator = "\n\n"
+
+        boundaries = boundary_line.finditer(body_value)
 
         try:
             current_boundary = next(boundaries)
@@ -1059,24 +1231,29 @@ class SensitiveDataDetector:
         while processed_parts < 256:
             try:
                 next_boundary = next(boundaries)
-                raw_part = body_text[current_boundary.end():next_boundary.start()]
+                raw_part = body_value[current_boundary.end():next_boundary.start()]
             except StopIteration:
                 # Preserve best-effort handling of a final truncated part.
                 next_boundary = None
-                raw_part = body_text[current_boundary.end():]
+                raw_part = body_value[current_boundary.end():]
 
             processed_parts += 1
             final_part = next_boundary is None or bool(next_boundary.group(1))
             if not final_part:
                 current_boundary = next_boundary
 
-            part = raw_part.lstrip("\r\n")
-            part = part.rstrip("\r\n")
+            part = raw_part.lstrip(crlf)
+            # Remove the transport line break immediately preceding the next
+            # MIME delimiter, but preserve any earlier bytes in the entity.
+            if part.endswith(crlf):
+                part = part[:-len(crlf)]
+            elif part.endswith(lf):
+                part = part[:-len(lf)]
 
-            if "\r\n\r\n" in part:
-                header_text, payload = part.split("\r\n\r\n", 1)
-            elif "\n\n" in part:
-                header_text, payload = part.split("\n\n", 1)
+            if header_separator in part:
+                header_text, payload = part.split(header_separator, 1)
+            elif alternate_separator in part:
+                header_text, payload = part.split(alternate_separator, 1)
             else:
                 if final_part:
                     break
@@ -1087,13 +1264,17 @@ class SensitiveDataDetector:
                     break
                 continue
 
+            header_string = (
+                header_text.decode("latin-1")
+                if is_bytes else header_text
+            )
             headers = {}
-            for line in header_text.splitlines():
+            for line in header_string.splitlines():
                 name, separator, header_value = line.partition(":")
                 if separator and name.strip():
                     headers[name.strip().lower()] = header_value.strip()
 
-            parts.append((headers, payload.rstrip("\r\n")))
+            parts.append((headers, payload if payload is not None else empty))
 
             if final_part:
                 break
@@ -1103,13 +1284,19 @@ class SensitiveDataDetector:
     @staticmethod
     def _extract_embedded_http_body(part_body):
         """Extract only an embedded HTTP entity body and its entity headers."""
-        if "\r\n\r\n" in part_body:
-            header_text, body = part_body.split("\r\n\r\n", 1)
-        elif "\n\n" in part_body:
-            header_text, body = part_body.split("\n\n", 1)
+        is_bytes = isinstance(part_body, (bytes, bytearray))
+        crlf_separator = b"\r\n\r\n" if is_bytes else "\r\n\r\n"
+        lf_separator = b"\n\n" if is_bytes else "\n\n"
+
+        if crlf_separator in part_body:
+            header_text, body = part_body.split(crlf_separator, 1)
+        elif lf_separator in part_body:
+            header_text, body = part_body.split(lf_separator, 1)
         else:
             return None, None, None
 
+        if is_bytes:
+            header_text = header_text.decode("latin-1")
         headers = {}
         for line in header_text.splitlines()[1:]:
             name, separator, value = line.partition(":")
@@ -1170,22 +1357,45 @@ class SensitiveDataDetector:
     def _extract_body_pairs(self, body, body_type=None, content_type=None):
         if not body:
             return []
-        if body_type == "multipart" or (content_type and "multipart/form-data" in content_type.lower()):
+        media_type = self._normalized_media_type(content_type)
+        if body_type == "multipart" or media_type == "multipart/form-data":
             return self._extract_multipart_pairs(body, content_type)
 
-        try:
-            parsed = json.loads(body)
-            if isinstance(parsed, (dict, list)):
-                return self._extract_json_pairs(parsed)
-        except (json.JSONDecodeError, TypeError, ValueError, RecursionError):
-            pass
+        # JSON has an unambiguous container shape and can be recognized when
+        # HAR MIME metadata is absent. Do not interpret arbitrary HTML,
+        # JavaScript, XML, or plain text as form fields merely because it
+        # contains '=' or '&'.
+        text = str(body)
+        if (
+            body_type == "json"
+            or media_type == "application/json"
+            or media_type.endswith("+json")
+            or text.lstrip().startswith(("{", "["))
+        ):
+            try:
+                parsed = json.loads(body)
+                if isinstance(parsed, (dict, list)):
+                    return self._extract_json_pairs(parsed)
+            except (json.JSONDecodeError, TypeError, ValueError, RecursionError):
+                pass
 
-        try:
-            parsed_pairs = parse_qsl(str(body), keep_blank_values=True)
-            if parsed_pairs:
-                return parsed_pairs
-        except Exception:
-            pass
+        if body_type == "form" or media_type == "application/x-www-form-urlencoded":
+            try:
+                parsed_pairs = parse_qsl(text, keep_blank_values=True)
+            except Exception:
+                return []
+
+            # A form field name is evidence metadata. Bound it and require a
+            # conservative parameter-name shape so malformed payloads cannot
+            # copy arbitrary body fragments or personal values into `key`.
+            return [
+                (key, value)
+                for key, value in parsed_pairs
+                if (
+                    0 < len(str(key)) <= 256
+                    and re.fullmatch(r"[A-Za-z0-9_.\-\[\]]+", str(key))
+                )
+            ]
         return []
 
     # --------------------------------------------------
@@ -1277,7 +1487,10 @@ class SensitiveDataDetector:
 
             # Do not classify arbitrary numeric protobuf strings as phones.
             # Only accept explicitly formatted international numbers here.
-            for phone in re.findall(r"\+\d[\d .()\-]{8,14}\d", str(value)):
+            for phone in re.findall(
+                r"(?<![A-Za-z0-9.])\+\d[\d .()\-]{8,14}\d(?!\d)",
+                str(value),
+            ):
                 if self._is_phone_number(phone):
                     findings.append(
                         self.create_finding(
@@ -1332,17 +1545,48 @@ class SensitiveDataDetector:
             )
             return
 
+        if media_type in {"multipart/mixed", "multipart/related"}:
+            multipart_body = self._decode_body_bytes(body, content_encoding)
+            if multipart_body is None:
+                return
+            self._analyze_multipart_container(
+                multipart_body, findings, source, content_type, _multipart_depth
+            )
+            return
+
+        # Unknown application binaries and explicit media/file payloads are
+        # not free text.  Structured formats with dedicated parsers have
+        # already been dispatched above.
+        explicitly_textual = (
+            media_type.startswith("text/")
+            or media_type in {
+                "application/json",
+                "application/xml",
+                "application/javascript",
+                "application/x-javascript",
+                "application/x-www-form-urlencoded",
+            }
+            or media_type.endswith(("+json", "+xml"))
+        )
+        if (
+            (body_type == "binary" and not explicitly_textual)
+            or media_type in {
+                "application/octet-stream",
+                "application/pdf",
+                "application/zip",
+                "application/x-7z-compressed",
+                "application/x-rar-compressed",
+                "application/x-tar",
+            }
+            or media_type.startswith(("image/", "audio/", "video/", "font/", "model/"))
+        ):
+            return
+
         decoded_body = ""
         if body:
             decoded_body = self._decode_body(body, content_type, content_encoding)
             if decoded_body is None:
                 return
-
-        if media_type in {"multipart/mixed", "multipart/related"}:
-            self._analyze_multipart_container(
-                decoded_body, findings, source, content_type, _multipart_depth
-            )
-            return
 
         parsed_body_pairs = self._extract_body_pairs(
             decoded_body, body_type, content_type
@@ -1480,7 +1724,11 @@ class SensitiveDataDetector:
                     query_pairs = list((getattr(request, "query_params", {}) or {}).items())
                 for key, value in query_pairs:
                     occurrence_id = object()
-                    finding_type = self._classify_key_value(key, value)
+                    finding_type = self._classify_key_value(
+                        key,
+                        value,
+                        allow_ambiguous_name=False,
+                    )
                     if finding_type:
                         add_finding(
                             finding_type, "Query Parameter", key, value,
@@ -1515,18 +1763,24 @@ class SensitiveDataDetector:
                 for key, value in request_header_pairs:
                     occurrence_id = object()
                     finding_type = self._classify_key_value(key, value)
-                    if self._normalize_key(key) == "authorization":
-                        finding_type = "Authorization Token"
+                    normalized_header = self._normalize_key(key)
+                    if normalized_header == "authorization":
+                        finding_type = (
+                            "Authorization Token"
+                            if self._has_identifier_value(value)
+                            else None
+                        )
                     if finding_type:
                         add_finding(
                             finding_type, "Header", key, value,
                             "outbound", occurrence_id,
                         )
                     signals = []
-                    self._analyze_text_signals(
-                        value, signals, "Header", key,
-                        _occurrence_id=occurrence_id,
-                    )
+                    if normalized_header != "cookie":
+                        self._analyze_text_signals(
+                            value, signals, "Header", key,
+                            _occurrence_id=occurrence_id,
+                        )
                     for f in signals:
                         add_finding(f.get("type"), "Header", f.get("key"),
                                     f.get("_raw_value"), "outbound",
@@ -1540,7 +1794,11 @@ class SensitiveDataDetector:
                     occurrence_id = object()
                     normalized = self._normalize_key(key)
                     finding_type = "Session Cookie" if (
-                        normalized in session_cookie_keys or "session" in normalized
+                        (
+                            normalized in session_cookie_keys
+                            or "session" in normalized
+                        )
+                        and self._has_identifier_value(value)
                     ) else self._classify_key_value(key, value)
                     if finding_type:
                         add_finding(
@@ -1592,18 +1850,24 @@ class SensitiveDataDetector:
                 for key, value in response_header_pairs:
                     occurrence_id = object()
                     finding_type = self._classify_key_value(key, value)
-                    if self._normalize_key(key) == "authorization":
-                        finding_type = "Authorization Token"
+                    normalized_header = self._normalize_key(key)
+                    if normalized_header == "authorization":
+                        finding_type = (
+                            "Authorization Token"
+                            if self._has_identifier_value(value)
+                            else None
+                        )
                     if finding_type:
                         add_finding(
                             finding_type, "Response Header", key, value,
                             "inbound", occurrence_id,
                         )
                     signals = []
-                    self._analyze_text_signals(
-                        value, signals, "Response Header", key,
-                        _occurrence_id=occurrence_id,
-                    )
+                    if normalized_header != "set_cookie":
+                        self._analyze_text_signals(
+                            value, signals, "Response Header", key,
+                            _occurrence_id=occurrence_id,
+                        )
                     for f in signals:
                         add_finding(f.get("type"), "Response Header", f.get("key"),
                                     f.get("_raw_value"), "inbound",
@@ -1617,7 +1881,11 @@ class SensitiveDataDetector:
                     occurrence_id = object()
                     normalized = self._normalize_key(key)
                     finding_type = "Session Cookie" if (
-                        normalized in session_cookie_keys or "session" in normalized
+                        (
+                            normalized in session_cookie_keys
+                            or "session" in normalized
+                        )
+                        and self._has_identifier_value(value)
                     ) else self._classify_key_value(key, value)
                     if finding_type:
                         add_finding(

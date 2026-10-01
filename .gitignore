@@ -40,6 +40,10 @@ data/har/
 
 # Raw captured traffic - never commit
 data/apps/**/har/
+*.har
+
+# External research datasets - keep outside version control
+OVRseen_datasets/
 
 # Raw Frida captures/logs - may contain sensitive data
 data/apps/**/Frida/

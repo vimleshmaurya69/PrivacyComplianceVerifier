@@ -120,6 +120,26 @@ class AppManager:
         )
 
     # --------------------------------------------------
+    # Frida Evidence File
+    # --------------------------------------------------
+
+    def get_frida_file(self):
+        """Return configured Frida evidence, with a legacy folder fallback."""
+        config = self.load_config()
+        configured = config.get("frida_file")
+        if configured:
+            return self.base_path / configured
+
+        # App folders in the dataset use both `frida` and `Frida`. Resolve the
+        # existing directory without relying on case-insensitive filesystems.
+        if self.base_path.exists():
+            for child in self.base_path.iterdir():
+                if child.is_dir() and child.name.lower() == "frida":
+                    return child / "frida_evidence.json"
+
+        return self.base_path / "frida" / "frida_evidence.json"
+
+    # --------------------------------------------------
     # Output Directory
     # --------------------------------------------------
 
