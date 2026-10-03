@@ -1,30 +1,17 @@
 {
-  "app_name": "LinkedIn Web",
-  "policy_available": true,
-
-  "policy_sources": [
-    "https://www.linkedin.com/legal/privacy-policy",
-    "https://www.linkedin.com/legal/cookie-policy",
-    "https://www.linkedin.com/legal/l/cookie-table"
+  "app_name": "LinkedIn Web", "policy_available": true, "policy_updated_at": "2025-11-03", "last_verified": "2026-10-03",
+  "sources": [
+    {"source_id": "linkedin-policy", "type": "privacy_policy", "title": "LinkedIn Privacy Policy", "url": "https://www.linkedin.com/legal/privacy-policy"},
+    {"source_id": "linkedin-cookie-policy", "type": "cookie_policy", "title": "LinkedIn Cookie Policy", "url": "https://www.linkedin.com/legal/cookie-policy"}
   ],
-
-  "declared_categories": [
-    "Personal Information",
-    "Contacts",
-    "Authentication",
-    "Location",
-    "Payment Information",
-    "Search",
-    "Usage Data",
-    "Device Information",
-    "Device Identifier",
-    "Network Information",
-    "Media Access",
-    "Cookies"
+  "information_type_review": {"status": "REVIEWED_COMPLETE", "basis": "Manual review of the official policy's Data We Collect section", "reviewed_at": "2026-10-03"},
+  "policy_practices": [
+    {"practice_id": "linkedin-registration-data", "privacy_category": "Personal Information", "artifact_types": ["Name", "Email", "Phone"], "action": "collect", "recipient_scope": "unknown", "provenance": {"source_ids": ["linkedin-policy"], "locator": "Section 1.1 - Registration", "evidence": "The policy explicitly states that account registration requires name, email address and/or mobile number.", "reviewed_at": "2026-10-03"}, "verification": {"state": "VERIFIED", "reviewed_at": "2026-10-03"}, "coverage": "VERIFIED"},
+    {"practice_id": "linkedin-authentication-data", "privacy_category": "Authentication", "artifact_types": ["Password"], "action": "collect", "recipient_scope": "unknown", "provenance": {"source_ids": ["linkedin-policy"], "locator": "Section 1.1 - Registration", "evidence": "The registration section explicitly lists a password.", "reviewed_at": "2026-10-03"}, "verification": {"state": "VERIFIED", "reviewed_at": "2026-10-03"}, "coverage": "VERIFIED"},
+    {"practice_id": "linkedin-device-identifiers", "privacy_category": "Device Identifier", "artifact_types": ["Device ID"], "action": "collect", "recipient_scope": "unknown", "provenance": {"source_ids": ["linkedin-policy"], "locator": "Sections 1.3-1.5 - Service Use, Cookies, Device and Location", "evidence": "The policy explicitly identifies device identifiers collected during use of LinkedIn services.", "reviewed_at": "2026-10-03"}, "verification": {"state": "VERIFIED", "reviewed_at": "2026-10-03"}, "coverage": "VERIFIED"},
+    {"practice_id": "linkedin-network-identifiers", "privacy_category": "Network Information", "artifact_types": ["IP Address"], "action": "collect", "recipient_scope": "unknown", "provenance": {"source_ids": ["linkedin-policy"], "locator": "Sections 1.3-1.5 - Service Use, Cookies, Device and Location", "evidence": "The policy explicitly identifies IP addresses collected during use of LinkedIn services.", "reviewed_at": "2026-10-03"}, "verification": {"state": "VERIFIED", "reviewed_at": "2026-10-03"}, "coverage": "VERIFIED"},
+    {"practice_id": "linkedin-location-data", "privacy_category": "Location", "artifact_types": ["Location"], "action": "collect", "recipient_scope": "unknown", "provenance": {"source_ids": ["linkedin-policy"], "locator": "Section 1.5 - Your Device and Location", "evidence": "The policy states that mobile devices can send location data and that precise location requires opt-in.", "reviewed_at": "2026-10-03"}, "verification": {"state": "VERIFIED", "reviewed_at": "2026-10-03"}, "coverage": "VERIFIED"}
   ],
-
-  "tracking": {
-    "advertising_libraries": true,
-    "third_party_tracking": true
-  }
+  "declared_categories": ["Personal Information", "Contacts", "Authentication", "Location", "Payment Information", "Search", "Usage Data", "Device Information", "Device Identifier", "Network Information", "Media Access", "Cookies"],
+  "tracking": {"advertising_libraries": true, "third_party_tracking": true}
 }

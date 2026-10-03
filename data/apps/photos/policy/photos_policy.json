@@ -2,7 +2,8 @@
     "app_name": "Google Photos",
     "policy_available": true,
     "source": "https://policies.google.com/privacy",
-    "last_verified": "2026-09-22",
+    "last_verified": "2026-10-03",
+    "policy_updated_at": "2026-10-01",
     "declared_practices": [
         {
             "category": "Personal Information",

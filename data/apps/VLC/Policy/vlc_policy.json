@@ -3,8 +3,8 @@
     "policy_available": true,
     "source": "https://www.videolan.org/vlc/privacy.php",
     "last_verified": "2026-09-11",
-    "excluded_from_study": true,
-    "exclusion_reason": "VLC was removed from the final tested application set because the captured run produced no useful network traffic and the study scope was narrowed to apps that interact with the internet during normal functioning.",
+    "study_role": "offline_control",
+    "scope_note": "VLC is retained as an offline-control application. The tested capture produced no network requests, so the result demonstrates capture behavior rather than policy compliance.",
     "declared_categories": [
         "Device Information",
         "Authentication",

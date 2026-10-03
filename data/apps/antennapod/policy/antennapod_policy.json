@@ -2,7 +2,8 @@
     "app_name": "AntennaPod",
     "policy_available": true,
     "source": "https://antennapod.org/privacy/",
-    "last_verified": "2026-09-11",
+    "last_verified": "2026-10-03",
+    "policy_updated_at": "2025-08-17",
     "policy_scope": [
         "Android app",
         "AntennaPod website"

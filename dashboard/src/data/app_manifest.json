@@ -1,0 +1,336 @@
+{
+  "primary_apps": [
+    {
+      "id": "antennapod",
+      "app_name": "AntennaPod",
+      "total_requests": 119,
+      "sensitive_occurrences": 1593,
+      "unique_artifacts": 6,
+      "output_dir": "/data/output/antennapod"
+    },
+    {
+      "id": "Blinkit",
+      "app_name": "Blinkit",
+      "total_requests": 1228,
+      "sensitive_occurrences": 25140,
+      "unique_artifacts": 177,
+      "output_dir": "/data/output/Blinkit"
+    },
+    {
+      "id": "BookMyShow",
+      "app_name": "bookmyshow",
+      "total_requests": 1765,
+      "sensitive_occurrences": 2263,
+      "unique_artifacts": 63,
+      "output_dir": "/data/output/BookMyShow"
+    },
+    {
+      "id": "Canva",
+      "app_name": "Canva",
+      "total_requests": 2690,
+      "sensitive_occurrences": 1743,
+      "unique_artifacts": 175,
+      "output_dir": "/data/output/Canva"
+    },
+    {
+      "id": "chrome",
+      "app_name": "Google Chrome",
+      "total_requests": 3143,
+      "sensitive_occurrences": 2831,
+      "unique_artifacts": 193,
+      "output_dir": "/data/output/chrome"
+    },
+    {
+      "id": "drive",
+      "app_name": "Google Drive",
+      "total_requests": 330,
+      "sensitive_occurrences": 327,
+      "unique_artifacts": 16,
+      "output_dir": "/data/output/drive"
+    },
+    {
+      "id": "Duolingo",
+      "app_name": "Duolingo",
+      "total_requests": 1133,
+      "sensitive_occurrences": 972,
+      "unique_artifacts": 329,
+      "output_dir": "/data/output/Duolingo"
+    },
+    {
+      "id": "Facebook",
+      "app_name": "Facebook",
+      "total_requests": 665,
+      "sensitive_occurrences": 242,
+      "unique_artifacts": 9,
+      "output_dir": "/data/output/Facebook"
+    },
+    {
+      "id": "forecastie",
+      "app_name": "Forecastie",
+      "total_requests": 295,
+      "sensitive_occurrences": 76,
+      "unique_artifacts": 21,
+      "output_dir": "/data/output/forecastie"
+    },
+    {
+      "id": "Gmail",
+      "app_name": "Gmail",
+      "total_requests": 328,
+      "sensitive_occurrences": 335,
+      "unique_artifacts": 24,
+      "output_dir": "/data/output/Gmail"
+    },
+    {
+      "id": "Google_Maps",
+      "app_name": "Google Maps Web",
+      "total_requests": 2275,
+      "sensitive_occurrences": 54,
+      "unique_artifacts": 18,
+      "output_dir": "/data/output/Google_Maps"
+    },
+    {
+      "id": "Hotstar",
+      "app_name": "JioHotstar",
+      "total_requests": 1509,
+      "sensitive_occurrences": 336,
+      "unique_artifacts": 145,
+      "output_dir": "/data/output/Hotstar"
+    },
+    {
+      "id": "instagram",
+      "app_name": "Instagram",
+      "total_requests": 936,
+      "sensitive_occurrences": 4440,
+      "unique_artifacts": 1570,
+      "output_dir": "/data/output/instagram"
+    },
+    {
+      "id": "linkedin",
+      "app_name": "LinkedIn",
+      "total_requests": 1433,
+      "sensitive_occurrences": 946,
+      "unique_artifacts": 20,
+      "output_dir": "/data/output/linkedin"
+    },
+    {
+      "id": "meesho",
+      "app_name": "Meesho",
+      "total_requests": 1285,
+      "sensitive_occurrences": 3386,
+      "unique_artifacts": 69,
+      "output_dir": "/data/output/meesho"
+    },
+    {
+      "id": "myjio",
+      "app_name": "MyJio",
+      "total_requests": 1081,
+      "sensitive_occurrences": 763,
+      "unique_artifacts": 93,
+      "output_dir": "/data/output/myjio"
+    },
+    {
+      "id": "naukri",
+      "app_name": "Naukri",
+      "total_requests": 1024,
+      "sensitive_occurrences": 1155,
+      "unique_artifacts": 80,
+      "output_dir": "/data/output/naukri"
+    },
+    {
+      "id": "photos",
+      "app_name": "Google Photos",
+      "total_requests": 370,
+      "sensitive_occurrences": 227,
+      "unique_artifacts": 11,
+      "output_dir": "/data/output/photos"
+    },
+    {
+      "id": "rapido",
+      "app_name": "Rapido",
+      "total_requests": 1642,
+      "sensitive_occurrences": 5101,
+      "unique_artifacts": 212,
+      "output_dir": "/data/output/rapido"
+    },
+    {
+      "id": "Reddit",
+      "app_name": "Reddit",
+      "total_requests": 1739,
+      "sensitive_occurrences": 3965,
+      "unique_artifacts": 638,
+      "output_dir": "/data/output/Reddit"
+    },
+    {
+      "id": "Snapdeal",
+      "app_name": "Snapdeal",
+      "total_requests": 1551,
+      "sensitive_occurrences": 5768,
+      "unique_artifacts": 53,
+      "output_dir": "/data/output/Snapdeal"
+    },
+    {
+      "id": "Spotify",
+      "app_name": "Spotify",
+      "total_requests": 811,
+      "sensitive_occurrences": 358,
+      "unique_artifacts": 35,
+      "output_dir": "/data/output/Spotify"
+    },
+    {
+      "id": "Swiggy",
+      "app_name": "Swiggy",
+      "total_requests": 1965,
+      "sensitive_occurrences": 6320,
+      "unique_artifacts": 209,
+      "output_dir": "/data/output/Swiggy"
+    },
+    {
+      "id": "teams",
+      "app_name": "Microsoft Teams",
+      "total_requests": 498,
+      "sensitive_occurrences": 420,
+      "unique_artifacts": 69,
+      "output_dir": "/data/output/teams"
+    },
+    {
+      "id": "telegram",
+      "app_name": "Telegram",
+      "total_requests": 1071,
+      "sensitive_occurrences": 11,
+      "unique_artifacts": 2,
+      "output_dir": "/data/output/telegram"
+    },
+    {
+      "id": "Truecaller",
+      "app_name": "Truecaller",
+      "total_requests": 184,
+      "sensitive_occurrences": 216,
+      "unique_artifacts": 8,
+      "output_dir": "/data/output/Truecaller"
+    },
+    {
+      "id": "vlc",
+      "app_name": "VLC",
+      "total_requests": 0,
+      "sensitive_occurrences": 0,
+      "unique_artifacts": 0,
+      "output_dir": "/data/output/vlc"
+    },
+    {
+      "id": "whatsapp",
+      "app_name": "WhatsApp",
+      "total_requests": 870,
+      "sensitive_occurrences": 271,
+      "unique_artifacts": 37,
+      "output_dir": "/data/output/whatsapp"
+    },
+    {
+      "id": "youtube",
+      "app_name": "YouTube",
+      "total_requests": 1205,
+      "sensitive_occurrences": 303,
+      "unique_artifacts": 218,
+      "output_dir": "/data/output/youtube"
+    },
+    {
+      "id": "zomato",
+      "app_name": "Zomato",
+      "total_requests": 1025,
+      "sensitive_occurrences": 15130,
+      "unique_artifacts": 854,
+      "output_dir": "/data/output/zomato"
+    }
+  ],
+  "external_apps": [
+    {
+      "id": "antshield_facebook_test",
+      "dataset": "AntShield",
+      "app_name": "AntShield Facebook External Test",
+      "total_requests": 99,
+      "sensitive_occurrences": 234,
+      "unique_artifacts": 9,
+      "output_dir": "/data/output/external_validation/results/antshield_facebook_test"
+    },
+    {
+      "id": "antshield_instagram_test",
+      "dataset": "AntShield",
+      "app_name": "AntShield Instagram External Test",
+      "total_requests": 1102,
+      "sensitive_occurrences": 104,
+      "unique_artifacts": 4,
+      "output_dir": "/data/output/external_validation/results/antshield_instagram_test"
+    },
+    {
+      "id": "antshield_roblox_test",
+      "dataset": "AntShield",
+      "app_name": "AntShield Roblox External Test",
+      "total_requests": 1251,
+      "sensitive_occurrences": 1284,
+      "unique_artifacts": 15,
+      "output_dir": "/data/output/external_validation/results/antshield_roblox_test"
+    },
+    {
+      "id": "antshield_spotify_test",
+      "dataset": "AntShield",
+      "app_name": "AntShield Spotify External Test",
+      "total_requests": 272,
+      "sensitive_occurrences": 53,
+      "unique_artifacts": 9,
+      "output_dir": "/data/output/external_validation/results/antshield_spotify_test"
+    },
+    {
+      "id": "parrot_facebook_test",
+      "dataset": "Parrot",
+      "app_name": "PARROT Facebook Test",
+      "total_requests": 1,
+      "sensitive_occurrences": 1,
+      "unique_artifacts": 1,
+      "output_dir": "/data/output/external_validation/results/parrot_facebook_test"
+    },
+    {
+      "id": "parrot_instagram_test",
+      "dataset": "Parrot",
+      "app_name": "PARROT Instagram Test",
+      "total_requests": 1,
+      "sensitive_occurrences": 1,
+      "unique_artifacts": 1,
+      "output_dir": "/data/output/external_validation/results/parrot_instagram_test"
+    },
+    {
+      "id": "parrot_spotify_test",
+      "dataset": "Parrot",
+      "app_name": "PARROT Spotify External Test",
+      "total_requests": 3,
+      "sensitive_occurrences": 0,
+      "unique_artifacts": 0,
+      "output_dir": "/data/output/external_validation/results/parrot_spotify_test"
+    },
+    {
+      "id": "com.AgainstGravity.RecRoom",
+      "dataset": "OVRseen",
+      "app_name": "com.AgainstGravity.RecRoom",
+      "total_requests": 7,
+      "sensitive_occurrences": 10,
+      "unique_artifacts": 3,
+      "output_dir": "/data/output/ovrseen_phase2/framework/com.AgainstGravity.RecRoom"
+    },
+    {
+      "id": "com.AnotherAxiom.GorillaTag",
+      "dataset": "OVRseen",
+      "app_name": "com.AnotherAxiom.GorillaTag",
+      "total_requests": 68,
+      "sensitive_occurrences": 67,
+      "unique_artifacts": 1,
+      "output_dir": "/data/output/ovrseen_phase2/framework/com.AnotherAxiom.GorillaTag"
+    },
+    {
+      "id": "com.vrchat.oculus.quest",
+      "dataset": "OVRseen",
+      "app_name": "com.vrchat.oculus.quest",
+      "total_requests": 20,
+      "sensitive_occurrences": 33,
+      "unique_artifacts": 5,
+      "output_dir": "/data/output/ovrseen_phase2/framework/com.vrchat.oculus.quest"
+    }
+  ]
+}

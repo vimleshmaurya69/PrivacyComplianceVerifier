@@ -2,6 +2,7 @@ import argparse
 import json
 import os
 import statistics
+import sys
 
 from src.app_manager import AppManager
 from src.parser.har_loader import HarLoader
@@ -13,6 +14,10 @@ from src.analyzer.privacy_inventory import PrivacyInventoryGenerator
 from src.exporter.json_exporter import JSONExporter
 from src.comparator.policy_comparator import PolicyComparator
 from src.policy.policy_parser import PrivacyPolicyParser
+from src.report.simple_result_presenter import (
+    build_simple_report,
+    format_simple_report,
+)
 from src.utils.privacy_taxonomy import PRIVACY_CATEGORY_MAP
 from src.comparator.semantic_category_mapping import (
     NON_COMPARABLE_OBSERVED_CATEGORIES,
@@ -50,7 +55,7 @@ def main(app_name):
 
         print("\n[ERROR] HAR file not found:")
         print(f"        {har_file}")
-        return
+        return 1
 
     if not policy_file.exists():
 
@@ -315,10 +320,12 @@ def main(app_name):
 
     compliance_results = None
     compliance_summary = None
+    simple_report = None
 
     if policy_file.exists():
 
         print("\nComparing observed traffic " "with policy evidence...")
+        compliance_path = output_path / "compliance_results.json"
 
         try:
 
@@ -384,11 +391,14 @@ def main(app_name):
                 "summary": compliance_summary,
             }
 
+            simple_report = build_simple_report(
+                privacy_inventory, compliance_report, policy_data
+            )
+            compliance_report["simple_report"] = simple_report
+
             # ------------------------------------------
             # Export Compliance Results
             # ------------------------------------------
-
-            compliance_path = output_path / "compliance_results.json"
 
             with open(compliance_path, "w", encoding="utf-8") as file:
 
@@ -403,6 +413,15 @@ def main(app_name):
         except Exception as e:
 
             print("\n[WARNING] Compliance comparison " f"failed: {e}")
+            try:
+                compliance_path.unlink(missing_ok=True)
+            except OSError as cleanup_error:
+                print(
+                    "[WARNING] Stale compliance output could not be removed: "
+                    f"{cleanup_error}"
+                )
+            print("Framework execution failed during policy comparison.")
+            return 1
 
     else:
 
@@ -503,53 +522,11 @@ def main(app_name):
             print(f"   - {category}")
 
     # ==================================================
-    # Privacy Assessment Summary
+    # Simple Policy-versus-Traffic Result
     # ==================================================
 
-    if compliance_summary is not None:
-
-        print("\nPrivacy Assessment Summary")
-
-        print(
-            f"Practices Disclosed    : "
-            f"{compliance_summary['practice_disclosed']}"
-        )
-
-        print(
-            f"Information Disclosed: "
-            f"{compliance_summary['information_type_disclosed']}"
-        )
-
-        print(
-            f"Potential Non-Disclosure: "
-            f"{compliance_summary['potential_non_disclosures']}"
-        )
-
-        print(
-            f"Insufficient Policy Detail: "
-            f"{compliance_summary['insufficient_policy_detail']}"
-        )
-
-        print(
-            f"Not Observed in Capture: "
-            f"{compliance_summary['not_observed_in_capture']}"
-        )
-
-        print(
-            f"Not Assessable from HAR: "
-            f"{compliance_summary['not_assessable_from_har']}"
-        )
-
-        print(f"Overall Status         : " f"{compliance_summary['overall_status']}")
-        print(
-            f"Compliance Determination: "
-            f"{compliance_summary['compliance_determination']}"
-        )
-
-        if compliance_summary["assessment_flags"]:
-            print("Assessment Flags:")
-            for flag in compliance_summary["assessment_flags"]:
-                print(f"   - {flag}")
+    if simple_report is not None:
+        print("\n" + format_simple_report(simple_report))
 
     # ==================================================
     # Output Files
@@ -570,6 +547,7 @@ def main(app_name):
         print(f"   {output_path / 'compliance_results.json'}")
 
     print("\nFramework execution completed successfully.")
+    return 0
 
 
 # ======================================================
@@ -586,4 +564,4 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    main(args.app)
+    sys.exit(main(args.app))

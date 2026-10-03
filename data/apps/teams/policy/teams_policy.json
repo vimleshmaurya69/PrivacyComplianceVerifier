@@ -1,30 +1,13 @@
 {
-  "app_name": "Microsoft Teams",
-  "policy_sources": [
-    {
-      "title": "Microsoft Privacy Statement",
-      "url": "https://www.microsoft.com/en-us/privacy/privacystatement"
-    },
-    {
-      "title": "Data collection summary for Teams",
-      "url": "https://www.microsoft.com/en-us/privacy/data-collection-teams"
-    }
+  "app_name": "Microsoft Teams", "policy_available": true, "last_verified": "2026-10-03",
+  "sources": [{"source_id": "microsoft-privacy", "type": "privacy_policy", "title": "Microsoft Privacy Statement", "url": "https://www.microsoft.com/en-us/privacy/privacystatement"}],
+  "information_type_review": {"status": "REVIEWED_COMPLETE", "basis": "Manual review of the Microsoft data-collection and Teams-specific sections", "reviewed_at": "2026-10-03"},
+  "policy_practices": [
+    {"practice_id": "teams-profile-data", "privacy_category": "Personal Information", "artifact_types": ["Name", "Email", "Phone", "Username"], "action": "collect", "recipient_scope": "unknown", "provenance": {"source_ids": ["microsoft-privacy"], "locator": "Microsoft Teams; data we collect", "evidence": "The Teams section explicitly identifies display name, email, phone number and username in Teams profile information.", "reviewed_at": "2026-10-03"}, "verification": {"state": "VERIFIED", "reviewed_at": "2026-10-03"}, "coverage": "VERIFIED"},
+    {"practice_id": "microsoft-account-id", "privacy_category": "Personal Information", "artifact_types": ["User ID"], "action": "collect", "recipient_scope": "unknown", "provenance": {"source_ids": ["microsoft-privacy"], "locator": "Microsoft account", "evidence": "The statement says Microsoft assigns a unique ID when a Microsoft account is created.", "reviewed_at": "2026-10-03"}, "verification": {"state": "VERIFIED", "reviewed_at": "2026-10-03"}, "coverage": "VERIFIED"},
+    {"practice_id": "microsoft-device-identifiers", "privacy_category": "Device Identifier", "artifact_types": ["Device ID"], "action": "collect", "recipient_scope": "unknown", "provenance": {"source_ids": ["microsoft-privacy"], "locator": "Device, connectivity, and configuration data", "evidence": "The statement explicitly lists device identifiers.", "reviewed_at": "2026-10-03"}, "verification": {"state": "VERIFIED", "reviewed_at": "2026-10-03"}, "coverage": "VERIFIED"},
+    {"practice_id": "microsoft-network-identifiers", "privacy_category": "Network Information", "artifact_types": ["IP Address"], "action": "collect", "recipient_scope": "unknown", "provenance": {"source_ids": ["microsoft-privacy"], "locator": "Device, connectivity, and configuration data", "evidence": "The statement explicitly lists IP addresses.", "reviewed_at": "2026-10-03"}, "verification": {"state": "VERIFIED", "reviewed_at": "2026-10-03"}, "coverage": "VERIFIED"}
   ],
-  "declared_categories": [
-    "Authentication",
-    "Contacts",
-    "Device Identifier",
-    "Device Information",
-    "Location",
-    "Network Information",
-    "Personal Information",
-    "Search",
-    "Usage Data",
-    "Media Access",
-    "Cookies"
-  ],
-  "tracking": {
-    "advertising_libraries": false,
-    "third_party_tracking": false
-  }
+  "declared_categories": ["Authentication", "Contacts", "Device Identifier", "Device Information", "Location", "Network Information", "Personal Information", "Search", "Usage Data", "Media Access", "Cookies"],
+  "tracking": {"advertising_libraries": false, "third_party_tracking": false}
 }

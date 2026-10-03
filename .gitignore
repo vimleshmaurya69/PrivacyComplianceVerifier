@@ -27,6 +27,9 @@ data/output/
 .env
 *.env
 
+# Dashboard dependencies (generated locally)
+dashboard/node_modules/
+
 # Captured traffic containing potentially sensitive headers
 data/apps/forecastie/har/
 data/captures/
@@ -42,8 +45,16 @@ data/har/
 data/apps/**/har/
 *.har
 
+# The only tracked HAR is a tiny synthetic regression fixture with no real data.
+!data/apps/DummyTestApp/har/
+!data/apps/DummyTestApp/har/dummy_test.har
+
 # External research datasets - keep outside version control
 OVRseen_datasets/
+PARROT2025_mitmproxy/
+raw_data/
+apps_info.csv
+exposures.csv
 
 # Raw Frida captures/logs - may contain sensitive data
 data/apps/**/Frida/

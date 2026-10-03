@@ -475,6 +475,11 @@ def normalize_policy_document(policy):
         "policy_available": policy.get("policy_available"),
         "sources": sources,
         "last_verified": last_verified,
+        "policy_updated_at": _clean_string(policy.get("policy_updated_at")),
+        "review_history": deepcopy(policy.get("review_history", [])),
+        "information_type_review": deepcopy(
+            policy.get("information_type_review", {})
+        ),
         "declared_categories": declared_categories,
         "declared_practices": deepcopy(legacy_practices),
         "policy_practices": practices,

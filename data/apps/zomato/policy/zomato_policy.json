@@ -1,25 +1,13 @@
 {
-  "app_name": "Zomato",
-  "policy_available": true,
-  "policy_sources": [
-    "https://www.zomato.com/policies/privacy/"
+  "app_name": "Zomato", "policy_available": true, "last_verified": "2026-10-03",
+  "sources": [{"source_id": "zomato-policy", "type": "privacy_policy", "title": "Zomato Privacy Policy", "url": "https://www.zomato.com/policies/privacy/"}],
+  "information_type_review": {"status": "REVIEWED_COMPLETE", "basis": "Manual review of the official policy's information-collection sections", "reviewed_at": "2026-10-03"},
+  "policy_practices": [
+    {"practice_id": "zomato-account-transaction-data", "privacy_category": "Personal Information", "artifact_types": ["Name", "Email", "Address", "Phone", "Date of Birth"], "action": "collect", "recipient_scope": "unknown", "provenance": {"source_ids": ["zomato-policy"], "locator": "Information you provide; transactional information", "evidence": "The policy explicitly identifies name, email, address or postal code, mobile phone number, and date of birth among information users provide.", "reviewed_at": "2026-10-03"}, "verification": {"state": "VERIFIED", "reviewed_at": "2026-10-03"}, "coverage": "VERIFIED"},
+    {"practice_id": "zomato-device-identifiers", "privacy_category": "Device Identifier", "artifact_types": ["Device ID"], "action": "collect", "recipient_scope": "unknown", "provenance": {"source_ids": ["zomato-policy"], "locator": "Device information", "evidence": "The policy explicitly identifies unique device identifiers in automatically collected device information.", "reviewed_at": "2026-10-03"}, "verification": {"state": "VERIFIED", "reviewed_at": "2026-10-03"}, "coverage": "VERIFIED"},
+    {"practice_id": "zomato-network-identifiers", "privacy_category": "Network Information", "artifact_types": ["IP Address"], "action": "collect", "recipient_scope": "unknown", "provenance": {"source_ids": ["zomato-policy"], "locator": "Device information", "evidence": "The policy explicitly identifies IP address in automatically collected device information.", "reviewed_at": "2026-10-03"}, "verification": {"state": "VERIFIED", "reviewed_at": "2026-10-03"}, "coverage": "VERIFIED"},
+    {"practice_id": "zomato-precise-location", "privacy_category": "Location", "artifact_types": ["Location", "Latitude", "Longitude"], "action": "collect", "recipient_scope": "unknown", "provenance": {"source_ids": ["zomato-policy"], "locator": "Location information", "evidence": "The policy explicitly describes GPS information including latitude and longitude.", "reviewed_at": "2026-10-03"}, "verification": {"state": "VERIFIED", "reviewed_at": "2026-10-03"}, "coverage": "VERIFIED"}
   ],
-  "declared_categories": [
-    "Personal Information",
-    "Authentication",
-    "Contacts",
-    "Search",
-    "Usage Data",
-    "Payment Information",
-    "Location",
-    "Device Information",
-    "Device Identifier",
-    "Network Information",
-    "Media Access",
-    "Cookies"
-  ],
-  "tracking": {
-    "advertising_libraries": true,
-    "third_party_tracking": true
-  }
+  "declared_categories": ["Personal Information", "Authentication", "Contacts", "Search", "Usage Data", "Payment Information", "Location", "Device Information", "Device Identifier", "Network Information", "Media Access", "Cookies"],
+  "tracking": {"advertising_libraries": true, "third_party_tracking": true}
 }

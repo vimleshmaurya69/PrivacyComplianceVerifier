@@ -1,30 +1,13 @@
 {
-  "app_name": "MyJio",
-  "policy_sources": [
-    {
-      "title": "MyJio Privacy Policy",
-      "url": "https://www.jio.com/jcms/en-in/myjio-privacy-policy/"
-    },
-    {
-      "title": "MyJio App Terms & Conditions",
-      "url": "https://www.jio.com/jcms/en-in/myjioapp-terms/"
-    }
+  "app_name": "MyJio", "policy_available": true, "last_verified": "2026-10-03",
+  "sources": [{"source_id": "myjio-policy", "type": "privacy_policy", "title": "MyJio Privacy Policy", "url": "https://www.jio.com/jcms/en-in/myjio-privacy-policy/"}],
+  "information_type_review": {"status": "REVIEWED_COMPLETE", "basis": "Manual review of the official MyJio privacy policy", "reviewed_at": "2026-10-03"},
+  "policy_practices": [
+    {"practice_id": "myjio-personal-data", "privacy_category": "Personal Information", "artifact_types": ["Name"], "action": "collect", "recipient_scope": "unknown", "provenance": {"source_ids": ["myjio-policy"], "locator": "Section 4 - Personal Information We Collect", "evidence": "The policy defines personal information collected by the app and explicitly includes name.", "reviewed_at": "2026-10-03"}, "verification": {"state": "VERIFIED", "reviewed_at": "2026-10-03"}, "coverage": "VERIFIED"},
+    {"practice_id": "myjio-device-identifiers", "privacy_category": "Device Identifier", "artifact_types": ["Device ID"], "action": "collect", "recipient_scope": "unknown", "provenance": {"source_ids": ["myjio-policy"], "locator": "Section 5 - Non-Personal Information", "evidence": "The policy explicitly identifies unique system or hardware identifiers among information the app may collect.", "reviewed_at": "2026-10-03"}, "verification": {"state": "VERIFIED", "reviewed_at": "2026-10-03"}, "coverage": "VERIFIED"},
+    {"practice_id": "myjio-location", "privacy_category": "Location", "artifact_types": ["Location"], "action": "collect", "recipient_scope": "unknown", "provenance": {"source_ids": ["myjio-policy"], "locator": "Section 6 - Location Services", "evidence": "The policy states that the app may access and collect location information through device signals and other technologies.", "reviewed_at": "2026-10-03"}, "verification": {"state": "VERIFIED", "reviewed_at": "2026-10-03"}, "coverage": "VERIFIED"},
+    {"practice_id": "myjio-ip-cookie-identifiers", "privacy_category": "Network Information", "artifact_types": ["IP Address"], "action": "collect", "recipient_scope": "unknown", "provenance": {"source_ids": ["myjio-policy"], "locator": "Section 7 - Cookies", "evidence": "The policy discusses IP addresses and similar identifiers in connection with cookies and personal-information treatment.", "reviewed_at": "2026-10-03"}, "verification": {"state": "VERIFIED", "reviewed_at": "2026-10-03"}, "coverage": "PARTIAL"}
   ],
-  "declared_categories": [
-    "Personal Information",
-    "Authentication",
-    "Device Information",
-    "Device Identifier",
-    "Location",
-    "Network Information",
-    "Usage Data",
-    "Contacts",
-    "Media Access",
-    "Cookies",
-    "Payment Information"
-  ],
-  "tracking": {
-    "advertising_libraries": true,
-    "third_party_tracking": true
-  }
+  "declared_categories": ["Personal Information", "Authentication", "Device Information", "Device Identifier", "Location", "Network Information", "Usage Data", "Contacts", "Media Access", "Cookies", "Payment Information"],
+  "tracking": {"advertising_libraries": true, "third_party_tracking": true}
 }

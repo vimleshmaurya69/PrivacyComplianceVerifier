@@ -1,27 +1,8 @@
 {
-  "app_name": "BookMyShow",
-  "policy_available": true,
-
-  "policy_sources": [
-    "https://bookmyshow.com/privacy"
-  ],
-
-  "declared_categories": [
-    "Personal Information",
-    "Authentication",
-    "Payment Information",
-    "Search",
-    "Usage Data",
-    "Location",
-    "Device Information",
-    "Device Identifier",
-    "Network Information",
-    "Media Access",
-    "Cookies"
-  ],
-
-  "tracking": {
-    "advertising_libraries": true,
-    "third_party_tracking": true
-  }
+  "app_name": "BookMyShow", "policy_available": true, "last_verified": "2026-10-03",
+  "sources": [{"source_id": "bookmyshow-policy-page", "type": "privacy_policy", "title": "BookMyShow Privacy page", "url": "https://in.bookmyshow.com/privacy"}],
+  "information_type_review": {"status": "REVIEW_INCOMPLETE", "basis": "The supplied official page contains only a privacy notice linking back to itself and does not expose the substantive policy text needed for a complete information-type review", "reviewed_at": "2026-10-03"},
+  "policy_practices": [],
+  "declared_categories": [],
+  "tracking": {"advertising_libraries": true, "third_party_tracking": true}
 }

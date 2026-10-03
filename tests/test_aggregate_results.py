@@ -48,6 +48,11 @@ def test_aggregate_reads_practice_v2_results(tmp_path):
     assert row["excluded_technical_occurrences"] == 1
     assert row["non_attributable_occurrences"] == 4
     assert row["report_format"] == "practice-v2"
+    assert row["declared_and_observed"] == 1
+    assert row["policy_mentions_observed_information"] == 2
+    assert row["observed_no_explicit_policy_match"] == 1
+    assert row["policy_detail_insufficient_simple"] == 1
+    assert row["result"] == "POLICY-TRAFFIC REVIEW REQUIRED"
 
 
 def test_aggregate_keeps_legacy_reports_loadable(tmp_path):
@@ -76,3 +81,68 @@ def test_aggregate_keeps_legacy_reports_loadable(tmp_path):
     assert row["potential_non_disclosures"] == 0
     assert row["disclosed_categories"] == 1
     assert row["report_format"] == "legacy-category"
+
+
+def test_aggregate_exports_capture_scoped_information_type_fields(tmp_path):
+    app = tmp_path / "Simple"
+    write_json(app / "statistics.json", {
+        "app_name": "Simple",
+        "total_requests": 2,
+        "sensitive_findings_by_category": {},
+    })
+    write_json(app / "compliance_results.json", {
+        "schema_version": 2,
+        "results": [],
+        "summary": {"compliance_determination": "NOT DETERMINED"},
+        "simple_report": {
+            "policy_review": {"status": "REVIEWED_COMPLETE"},
+            "policy_declares": {"categories": [], "information_types": ["Phone"]},
+            "traffic_transmits": [
+                {"artifact_type": "Phone"},
+                {"artifact_type": "Email"},
+            ],
+            "comparison": [
+                {"result": "DISCLOSED", "information_type_count": 1},
+                {
+                    "result": "NOT_DISCLOSED_IN_REVIEWED_POLICY",
+                    "information_type_count": 1,
+                },
+                {
+                    "result": "DECLARED_NOT_OBSERVED_IN_CAPTURE",
+                    "information_type_count": 2,
+                },
+            ],
+            "risk_signals": [],
+            "result": "POTENTIALLY_NON_COMPLIANT",
+            "compliance_determination": "NOT DETERMINED",
+        },
+    })
+
+    row = build_rows(tmp_path)[0]
+    assert row["policy_review_status"] == "REVIEWED_COMPLETE"
+    assert row["observed_information_type_count"] == 2
+    assert row["disclosed_information_type_count"] == 1
+    assert row["not_disclosed_information_type_count"] == 1
+    assert row["declared_not_observed_type_count"] == 2
+    assert row["capture_scoped_result"] == "POTENTIALLY_NON_COMPLIANT"
+    assert row["simple_compliance_determination"] == "NOT DETERMINED"
+
+
+def test_aggregate_excludes_marked_synthetic_application(tmp_path):
+    output_root = tmp_path / "output"
+    app_root = tmp_path / "apps"
+    write_json(output_root / "Real" / "statistics.json", {
+        "app_name": "Real",
+        "sensitive_findings_by_category": {},
+    })
+    write_json(output_root / "Synthetic" / "statistics.json", {
+        "app_name": "Synthetic",
+        "sensitive_findings_by_category": {},
+    })
+    write_json(app_root / "Synthetic" / "app_config.json", {
+        "exclude_from_aggregate": True,
+    })
+
+    rows = build_rows(output_root, app_root)
+
+    assert [row["application"] for row in rows] == ["Real"]

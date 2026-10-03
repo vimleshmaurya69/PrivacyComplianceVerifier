@@ -1,40 +1,15 @@
 {
-    "app": "Forecastie",
-    "sources": [
-        {
-            "type": "app_metadata",
-            "source": "F-Droid",
-            "url": "https://f-droid.org/en/packages/cz.martykan.forecastie/",
-            "reliability": "primary"
-        },
-        {
-            "type": "source_code",
-            "source": "Forecastie GitHub repository",
-            "url": "https://github.com/martykan/forecastie",
-            "reliability": "primary"
-        }
-    ],
-    "declared_practices": [
-        {
-            "data": "Location",
-            "category": "Location",
-            "purpose": "Weather location",
-            "source_type": "app_metadata",
-            "evidence": "Application requests approximate and precise foreground location."
-        },
-        {
-            "data": "Location",
-            "category": "Location",
-            "purpose": "Weather retrieval",
-            "source_type": "source_code",
-            "evidence": "Application uses location information for weather functionality."
-        },
-        {
-            "data": "Weather API",
-            "category": "Third Party Service",
-            "purpose": "Weather data retrieval",
-            "source_type": "app_metadata",
-            "evidence": "Forecastie gathers weather data from OpenWeatherMap."
-        }
-    ]
+  "app_name": "Forecastie", "policy_available": false, "last_verified": "2026-10-03",
+  "sources": [
+    {"source_id": "forecastie-fdroid", "type": "app_metadata", "title": "Forecastie on F-Droid", "url": "https://f-droid.org/en/packages/cz.martykan.forecastie/"},
+    {"source_id": "forecastie-source", "type": "source_code", "title": "Forecastie source repository", "url": "https://github.com/martykan/forecastie"}
+  ],
+  "information_type_review": {"status": "POLICY_UNAVAILABLE", "basis": "No official privacy policy was found; source-code and app-metadata evidence is retained separately and is not represented as a publisher policy disclosure", "reviewed_at": "2026-10-03"},
+  "policy_practices": [],
+  "source_code_evidence": [
+    {"evidence_id": "forecastie-source-location", "privacy_category": "Location", "artifact_types": ["Location"], "action": "use", "purpose": "Weather retrieval", "source_ids": ["forecastie-fdroid", "forecastie-source"], "evidence": "Project documentation states that Forecastie retrieves weather data from OpenWeatherMap; this is implementation evidence, not a publisher privacy-policy disclosure."}
+  ],
+  "declared_categories": ["Location", "Third Party Service"],
+  "policy_scope": ["Source-code-derived behavior note; not an official privacy policy"],
+  "tracking": {"advertising_libraries": false, "third_party_tracking": false}
 }

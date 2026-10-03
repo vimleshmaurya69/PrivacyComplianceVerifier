@@ -1,0 +1,11 @@
+{
+  "app_name": "Dummy Test App (Synthetic)",
+  "exclude_from_aggregate": true,
+  "package_name": "test.privacycompliance.dummy",
+  "application_services": [
+    "dummy.test"
+  ],
+  "third_party_services": [],
+  "har_file": "har/dummy_test.har",
+  "policy_file": "policy/dummy_test_policy.json"
+}

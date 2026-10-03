@@ -1,0 +1,166 @@
+{
+  "schema_version": 2,
+  "application": "Dummy Test App (Synthetic)",
+  "app": "Dummy Test App (Synthetic)",
+  "package": "test.privacycompliance.dummy",
+  "policy_available": true,
+  "source": "https://policy.dummy.test/privacy",
+  "last_verified": "2026-10-01",
+  "policy_updated_at": "2026-10-01",
+  "sources": [
+    {
+      "source_id": "dummy-test-policy",
+      "type": "privacy_policy",
+      "url": "https://policy.dummy.test/privacy",
+      "title": "Synthetic Privacy Policy for Framework Validation",
+      "metadata": {
+        "policy_updated_at": "2026-10-01",
+        "reviewed_at": "2026-10-01",
+        "synthetic_fixture": true
+      }
+    }
+  ],
+  "policy_scope": [
+    "Synthetic validation traffic only"
+  ],
+  "declared_categories": [
+    "Personal Information",
+    "Device Identifier",
+    "Location",
+    "Authentication",
+    "Media Access"
+  ],
+  "policy_practices": [
+    {
+      "practice_id": "dummy-phone-transmit",
+      "privacy_category": "Personal Information",
+      "artifact_types": [
+        "Phone"
+      ],
+      "action": "transmit",
+      "recipient_scope": "first_party",
+      "recipient_domains": [
+        {
+          "domain": "api.dummy.test",
+          "include_subdomains": false
+        }
+      ],
+      "provenance": {
+        "source_ids": [
+          "dummy-test-policy"
+        ],
+        "source_type": "privacy_policy",
+        "source_url": "https://policy.dummy.test/privacy",
+        "locator": "Synthetic section 1: Profile submission",
+        "evidence": "The synthetic policy states that the phone number is transmitted to api.dummy.test when the profile form is submitted.",
+        "reviewed_at": "2026-10-01"
+      },
+      "verification": {
+        "state": "VERIFIED",
+        "reviewed_at": "2026-10-01"
+      },
+      "coverage": "VERIFIED"
+    },
+    {
+      "practice_id": "dummy-email-collect",
+      "privacy_category": "Personal Information",
+      "artifact_types": [
+        "Email"
+      ],
+      "action": "collect",
+      "recipient_scope": "unknown",
+      "recipient_domains": [],
+      "provenance": {
+        "source_ids": [
+          "dummy-test-policy"
+        ],
+        "source_type": "privacy_policy",
+        "source_url": "https://policy.dummy.test/privacy",
+        "locator": "Synthetic section 1: Profile information",
+        "evidence": "The synthetic policy states that the app collects the user's email address.",
+        "reviewed_at": "2026-10-01"
+      },
+      "verification": {
+        "state": "VERIFIED",
+        "reviewed_at": "2026-10-01"
+      },
+      "coverage": "PARTIAL"
+    },
+    {
+      "practice_id": "dummy-auth-token-collect",
+      "privacy_category": "Authentication",
+      "artifact_types": [
+        "Authorization Token"
+      ],
+      "action": "collect",
+      "recipient_scope": "unknown",
+      "recipient_domains": [],
+      "provenance": {
+        "source_ids": [
+          "dummy-test-policy"
+        ],
+        "source_type": "privacy_policy",
+        "source_url": "https://policy.dummy.test/privacy",
+        "locator": "Synthetic section 2: Authentication",
+        "evidence": "The synthetic policy states that authorization tokens are collected for account access.",
+        "reviewed_at": "2026-10-01"
+      },
+      "verification": {
+        "state": "VERIFIED",
+        "reviewed_at": "2026-10-01"
+      },
+      "coverage": "PARTIAL"
+    },
+    {
+      "practice_id": "dummy-camera-collect",
+      "privacy_category": "Media Access",
+      "artifact_types": [
+        "Camera"
+      ],
+      "action": "collect",
+      "recipient_scope": "unknown",
+      "recipient_domains": [],
+      "provenance": {
+        "source_ids": [
+          "dummy-test-policy"
+        ],
+        "source_type": "privacy_policy",
+        "source_url": "https://policy.dummy.test/privacy",
+        "locator": "Synthetic section 3: Camera",
+        "evidence": "The synthetic policy states that camera access may be collected after permission is granted.",
+        "reviewed_at": "2026-10-01"
+      },
+      "verification": {
+        "state": "VERIFIED",
+        "reviewed_at": "2026-10-01"
+      },
+      "coverage": "PARTIAL"
+    }
+  ],
+  "comparison_coverage": [
+    {
+      "coverage_id": "dummy-device-id-complete-review",
+      "privacy_category": "Device Identifier",
+      "artifact_types": [
+        "Device ID"
+      ],
+      "action": "transmit",
+      "recipient_scope": "first_party",
+      "recipient_domains": [
+        {
+          "domain": "api.dummy.test",
+          "include_subdomains": false
+        }
+      ],
+      "state": "VERIFIED_COMPLETE",
+      "provenance": {
+        "source_ids": [
+          "dummy-test-policy"
+        ],
+        "locator": "Complete manual review of the synthetic policy for Device ID transmission",
+        "evidence": "The complete synthetic policy was reviewed for Device ID transmission to api.dummy.test and contains no disclosure of that practice.",
+        "reviewed_at": "2026-10-01"
+      }
+    }
+  ]
+}

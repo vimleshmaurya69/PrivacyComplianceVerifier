@@ -1,25 +1,13 @@
 {
-  "app_name": "Rapido",
-  "policy_sources": [
-    {
-      "title": "Rapido Privacy Policy",
-      "url": "https://www.rapido.bike/Privacy"
-    }
+  "app_name": "Rapido", "policy_available": true, "last_verified": "2026-10-03",
+  "sources": [{"source_id": "rapido-policy", "type": "privacy_policy", "title": "Rapido Privacy Policy", "url": "https://www.rapido.bike/Privacy"}],
+  "information_type_review": {"status": "REVIEWED_COMPLETE", "basis": "Manual review of the official policy's information-collection sections", "reviewed_at": "2026-10-03"},
+  "policy_practices": [
+    {"practice_id": "rapido-account-transaction-data", "privacy_category": "Personal Information", "artifact_types": ["Name", "Email", "Address", "Phone", "Date of Birth"], "action": "collect", "recipient_scope": "unknown", "provenance": {"source_ids": ["rapido-policy"], "locator": "Information you provide; transactional information", "evidence": "The policy explicitly identifies full name, email address, address, mobile phone number, and date of birth among account and transaction information.", "reviewed_at": "2026-10-03"}, "verification": {"state": "VERIFIED", "reviewed_at": "2026-10-03"}, "coverage": "VERIFIED"},
+    {"practice_id": "rapido-device-identifiers", "privacy_category": "Device Identifier", "artifact_types": ["Device ID"], "action": "collect", "recipient_scope": "unknown", "provenance": {"source_ids": ["rapido-policy"], "locator": "Device information and defined Device Identifier", "evidence": "The policy describes unique identifiers associated with a user's device.", "reviewed_at": "2026-10-03"}, "verification": {"state": "VERIFIED", "reviewed_at": "2026-10-03"}, "coverage": "VERIFIED"},
+    {"practice_id": "rapido-network-identifiers", "privacy_category": "Network Information", "artifact_types": ["IP Address"], "action": "collect", "recipient_scope": "unknown", "provenance": {"source_ids": ["rapido-policy"], "locator": "Definition of Device Identifier", "evidence": "The policy explicitly includes IP address in its defined identifier information.", "reviewed_at": "2026-10-03"}, "verification": {"state": "VERIFIED", "reviewed_at": "2026-10-03"}, "coverage": "VERIFIED"},
+    {"practice_id": "rapido-location-data", "privacy_category": "Location", "artifact_types": ["Location"], "action": "collect", "recipient_scope": "unknown", "provenance": {"source_ids": ["rapido-policy"], "locator": "Device information and geolocation", "evidence": "The policy identifies geolocation information collected from the user's device.", "reviewed_at": "2026-10-03"}, "verification": {"state": "VERIFIED", "reviewed_at": "2026-10-03"}, "coverage": "VERIFIED"}
   ],
-  "declared_categories": [
-    "Authentication",
-    "Contacts",
-    "Device Identifier",
-    "Device Information",
-    "Location",
-    "Network Information",
-    "Payment Information",
-    "Personal Information",
-    "Search",
-    "Usage Data"
-  ],
-  "tracking": {
-    "advertising_libraries": true,
-    "third_party_tracking": true
-  }
+  "declared_categories": ["Authentication", "Contacts", "Device Identifier", "Device Information", "Location", "Network Information", "Payment Information", "Personal Information", "Search", "Usage Data"],
+  "tracking": {"advertising_libraries": true, "third_party_tracking": true}
 }

@@ -1,27 +1,13 @@
 {
-  "app_name": "Snapdeal",
-  "policy_available": true,
-
-  "policy_sources": [
-    "https://www.snapdeal.com/page/privacy-policy"
+  "app_name": "Snapdeal", "policy_available": true, "policy_updated_at": "2023-11-30", "last_verified": "2026-10-03",
+  "sources": [{"source_id": "snapdeal-policy", "type": "privacy_policy", "title": "Snapdeal Privacy Policy", "url": "https://www.snapdeal.com/page/privacy-policy"}],
+  "information_type_review": {"status": "REVIEWED_COMPLETE", "basis": "Manual review of the official policy's information-collection sections", "reviewed_at": "2026-10-03"},
+  "policy_practices": [
+    {"practice_id": "snapdeal-user-data", "privacy_category": "Personal Information", "artifact_types": ["Name", "Email", "Address", "Phone", "Date of Birth"], "action": "collect", "recipient_scope": "unknown", "provenance": {"source_ids": ["snapdeal-policy"], "locator": "Section 1 - What Personal Data do we have about you?", "evidence": "The policy explicitly lists name, date of birth, email address, physical address, and phone-related correspondence or support data.", "reviewed_at": "2026-10-03"}, "verification": {"state": "VERIFIED", "reviewed_at": "2026-10-03"}, "coverage": "VERIFIED"},
+    {"practice_id": "snapdeal-device-identifiers", "privacy_category": "Device Identifier", "artifact_types": ["Device ID"], "action": "collect", "recipient_scope": "unknown", "provenance": {"source_ids": ["snapdeal-policy"], "locator": "Section 4 - Advertising", "evidence": "The policy identifies device identifiers used for advertising.", "reviewed_at": "2026-10-03"}, "verification": {"state": "VERIFIED", "reviewed_at": "2026-10-03"}, "coverage": "VERIFIED"},
+    {"practice_id": "snapdeal-network-identifiers", "privacy_category": "Network Information", "artifact_types": ["IP Address"], "action": "collect", "recipient_scope": "unknown", "provenance": {"source_ids": ["snapdeal-policy"], "locator": "Section 1 - Device data", "evidence": "The policy explicitly identifies Internet Protocol address in automatically collected device data.", "reviewed_at": "2026-10-03"}, "verification": {"state": "VERIFIED", "reviewed_at": "2026-10-03"}, "coverage": "VERIFIED"},
+    {"practice_id": "snapdeal-location-data", "privacy_category": "Location", "artifact_types": ["Location"], "action": "collect", "recipient_scope": "unknown", "provenance": {"source_ids": ["snapdeal-policy"], "locator": "Section 1 device data", "evidence": "The policy lists device location among automatically collected device data.", "reviewed_at": "2026-10-03"}, "verification": {"state": "VERIFIED", "reviewed_at": "2026-10-03"}, "coverage": "VERIFIED"}
   ],
-
-  "declared_categories": [
-    "Personal Information",
-    "Authentication",
-    "Payment Information",
-    "Search",
-    "Usage Data",
-    "Location",
-    "Device Information",
-    "Device Identifier",
-    "Network Information",
-    "Media Access",
-    "Cookies"
-  ],
-
-  "tracking": {
-    "advertising_libraries": true,
-    "third_party_tracking": true
-  }
+  "declared_categories": ["Personal Information", "Authentication", "Payment Information", "Search", "Usage Data", "Location", "Device Information", "Device Identifier", "Network Information", "Media Access", "Cookies"],
+  "tracking": {"advertising_libraries": true, "third_party_tracking": true}
 }

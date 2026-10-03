@@ -1,25 +1,16 @@
 {
-  "app_name": "JioHotstar",
-  "policy_available": true,
-  "policy_sources": [
-    "https://secure-media.hotstar.com/web-assets/pp/privacy-policy/privacy-policy-production_IN_new_app.html"
+  "app_name": "JioHotstar", "policy_available": true, "last_verified": "2026-10-03",
+  "sources": [
+    {"source_id": "hotstar-current-link", "type": "privacy_policy", "title": "JioHotstar Privacy Policy link", "url": "https://www.hotstar.com/privacy-policy"},
+    {"source_id": "hotstar-archived-policy", "type": "archived_privacy_policy", "title": "Hotstar Privacy Policy (archived official copy)", "url": "https://secure-media.hotstar.com/web-assets/prod/privacy-policy/privacy-policy-production_IN_prev.html"}
   ],
-  "declared_categories": [
-    "Personal Information",
-    "Contacts",
-    "Authentication",
-    "Location",
-    "Payment Information",
-    "Search",
-    "Usage Data",
-    "Media Access",
-    "Device Information",
-    "Device Identifier",
-    "Network Information",
-    "Cookies"
+  "information_type_review": {"status": "REVIEW_INCOMPLETE", "basis": "The current public link redirected to the service home page; explicit practices below come from an archived official India policy and are not treated as a complete current review", "reviewed_at": "2026-10-03"},
+  "policy_practices": [
+    {"practice_id": "hotstar-profile-data", "privacy_category": "Personal Information", "artifact_types": ["Name", "Email", "Phone", "Date of Birth", "Address", "User ID"], "action": "collect", "recipient_scope": "unknown", "provenance": {"source_ids": ["hotstar-archived-policy"], "locator": "Collection of Personal Information", "evidence": "The archived official policy explicitly identifies name, postal address, email, mobile number, date of birth, and a generated customer or user identifier.", "reviewed_at": "2026-10-03"}, "verification": {"state": "VERIFIED", "reviewed_at": "2026-10-03"}, "coverage": "PARTIAL"},
+    {"practice_id": "hotstar-device-identifiers", "privacy_category": "Device Identifier", "artifact_types": ["Device ID"], "action": "collect", "recipient_scope": "unknown", "provenance": {"source_ids": ["hotstar-archived-policy"], "locator": "Information We Collect Automatically", "evidence": "The archived official policy explicitly identifies device ID and other unique identifiers.", "reviewed_at": "2026-10-03"}, "verification": {"state": "VERIFIED", "reviewed_at": "2026-10-03"}, "coverage": "PARTIAL"},
+    {"practice_id": "hotstar-network-identifiers", "privacy_category": "Network Information", "artifact_types": ["IP Address"], "action": "collect", "recipient_scope": "unknown", "provenance": {"source_ids": ["hotstar-archived-policy"], "locator": "Information We Collect Automatically", "evidence": "The archived official policy identifies IP address as a source of general location information.", "reviewed_at": "2026-10-03"}, "verification": {"state": "VERIFIED", "reviewed_at": "2026-10-03"}, "coverage": "PARTIAL"},
+    {"practice_id": "hotstar-location-data", "privacy_category": "Location", "artifact_types": ["Location"], "action": "collect", "recipient_scope": "unknown", "provenance": {"source_ids": ["hotstar-archived-policy"], "locator": "Information We Collect Automatically", "evidence": "The archived official policy describes general location and precise location based on GPS data.", "reviewed_at": "2026-10-03"}, "verification": {"state": "VERIFIED", "reviewed_at": "2026-10-03"}, "coverage": "PARTIAL"}
   ],
-  "tracking": {
-    "advertising_libraries": true,
-    "third_party_tracking": true
-  }
+  "declared_categories": ["Personal Information", "Contacts", "Authentication", "Location", "Payment Information", "Search", "Usage Data", "Media Access", "Device Information", "Device Identifier", "Network Information", "Cookies"],
+  "tracking": {"advertising_libraries": true, "third_party_tracking": true}
 }

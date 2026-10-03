@@ -1,25 +1,37 @@
 {
   "app_name": "Blinkit",
   "policy_available": true,
-  "policy_sources": [
-    "https://blinkit.com/privacy"
+  "policy_updated_at": "2025-01",
+  "last_verified": "2026-10-03",
+  "sources": [{"source_id": "blinkit-policy", "type": "privacy_policy", "title": "Blinkit Privacy Policy", "url": "https://blinkit.com/privacy"}],
+  "information_type_review": {"status": "REVIEWED_COMPLETE", "basis": "Manual review of the official policy's information-collection sections", "reviewed_at": "2026-10-03"},
+  "policy_practices": [
+    {
+      "practice_id": "blinkit-account-transaction-data", "privacy_category": "Personal Information", "artifact_types": ["Name", "Email", "Address", "Phone", "Date of Birth"], "action": "collect", "recipient_scope": "unknown",
+      "provenance": {"source_ids": ["blinkit-policy"], "locator": "Information you provide; transactional information", "evidence": "The policy explicitly lists full name, email address, address or postal code, mobile phone number, and date of birth among information provided by users.", "reviewed_at": "2026-10-03"},
+      "verification": {"state": "VERIFIED", "reviewed_at": "2026-10-03"}, "coverage": "VERIFIED"
+    },
+    {
+      "practice_id": "blinkit-device-identifiers", "privacy_category": "Device Identifier", "artifact_types": ["Device ID"], "action": "collect", "recipient_scope": "unknown",
+      "provenance": {"source_ids": ["blinkit-policy"], "locator": "Device information", "evidence": "The policy identifies unique device identifiers and mobile device IDs.", "reviewed_at": "2026-10-03"},
+      "verification": {"state": "VERIFIED", "reviewed_at": "2026-10-03"}, "coverage": "VERIFIED"
+    },
+    {
+      "practice_id": "blinkit-network-identifiers", "privacy_category": "Network Information", "artifact_types": ["IP Address"], "action": "collect", "recipient_scope": "unknown",
+      "provenance": {"source_ids": ["blinkit-policy"], "locator": "Device information", "evidence": "The policy identifies IP address in automatically collected device information.", "reviewed_at": "2026-10-03"},
+      "verification": {"state": "VERIFIED", "reviewed_at": "2026-10-03"}, "coverage": "VERIFIED"
+    },
+    {
+      "practice_id": "blinkit-user-identifiers", "privacy_category": "Personal Information", "artifact_types": ["User ID"], "action": "collect", "recipient_scope": "unknown",
+      "provenance": {"source_ids": ["blinkit-policy"], "locator": "Social media information", "evidence": "The policy explicitly identifies social-media user ID.", "reviewed_at": "2026-10-03"},
+      "verification": {"state": "VERIFIED", "reviewed_at": "2026-10-03"}, "coverage": "VERIFIED"
+    },
+    {
+      "practice_id": "blinkit-precise-location", "privacy_category": "Location", "artifact_types": ["Location", "Latitude", "Longitude"], "action": "collect", "recipient_scope": "unknown",
+      "provenance": {"source_ids": ["blinkit-policy"], "locator": "Location information", "evidence": "The policy explicitly describes GPS location information including latitude and longitude.", "reviewed_at": "2026-10-03"},
+      "verification": {"state": "VERIFIED", "reviewed_at": "2026-10-03"}, "coverage": "VERIFIED"
+    }
   ],
-  "declared_categories": [
-    "Personal Information",
-    "Contacts",
-    "Authentication",
-    "Payment Information",
-    "Search",
-    "Usage Data",
-    "Location",
-    "Device Information",
-    "Device Identifier",
-    "Network Information",
-    "Media Access",
-    "Cookies"
-  ],
-  "tracking": {
-    "advertising_libraries": true,
-    "third_party_tracking": true
-  }
+  "declared_categories": ["Personal Information", "Contacts", "Authentication", "Payment Information", "Search", "Usage Data", "Location", "Device Information", "Device Identifier", "Network Information", "Media Access", "Cookies"],
+  "tracking": {"advertising_libraries": true, "third_party_tracking": true}
 }

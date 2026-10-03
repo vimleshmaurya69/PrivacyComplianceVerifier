@@ -1,24 +1,32 @@
 {
   "app_name": "Swiggy",
   "policy_available": true,
-  "policy_sources": [
-    "https://driver-media-assets.swiggy.com/roadrunner-assets/sites/privacy-policy.html"
+  "policy_updated_at": "2026-04-17",
+  "last_verified": "2026-10-03",
+  "sources": [{"source_id": "swiggy-policy", "type": "privacy_policy", "title": "Swiggy Privacy Policy", "url": "https://www.swiggy.com/privacy-policy"}],
+  "information_type_review": {"status": "REVIEWED_COMPLETE", "basis": "Manual review of the official policy's information-collection sections", "reviewed_at": "2026-10-03"},
+  "policy_practices": [
+    {
+      "practice_id": "swiggy-account-transaction-data", "privacy_category": "Personal Information", "artifact_types": ["Name", "Email", "Address", "Phone"], "action": "collect", "recipient_scope": "unknown",
+      "provenance": {"source_ids": ["swiggy-policy"], "locator": "Information you provide to us; transactional information", "evidence": "The policy identifies full name, email address, address or postal code, and mobile phone number as information supplied for accounts and transactions.", "reviewed_at": "2026-10-03"},
+      "verification": {"state": "VERIFIED", "reviewed_at": "2026-10-03"}, "coverage": "VERIFIED"
+    },
+    {
+      "practice_id": "swiggy-device-identifiers", "privacy_category": "Device Identifier", "artifact_types": ["Device ID"], "action": "collect", "recipient_scope": "unknown",
+      "provenance": {"source_ids": ["swiggy-policy"], "locator": "Device information", "evidence": "The policy identifies device identifiers and advertising identifiers.", "reviewed_at": "2026-10-03"},
+      "verification": {"state": "VERIFIED", "reviewed_at": "2026-10-03"}, "coverage": "VERIFIED"
+    },
+    {
+      "practice_id": "swiggy-network-identifiers", "privacy_category": "Network Information", "artifact_types": ["IP Address"], "action": "collect", "recipient_scope": "unknown",
+      "provenance": {"source_ids": ["swiggy-policy"], "locator": "Log information", "evidence": "The policy identifies IP address in log information.", "reviewed_at": "2026-10-03"},
+      "verification": {"state": "VERIFIED", "reviewed_at": "2026-10-03"}, "coverage": "VERIFIED"
+    },
+    {
+      "practice_id": "swiggy-location-data", "privacy_category": "Location", "artifact_types": ["Location"], "action": "collect", "recipient_scope": "unknown",
+      "provenance": {"source_ids": ["swiggy-policy"], "locator": "Location information", "evidence": "The policy states that Swiggy may collect real-time location information when location services are enabled.", "reviewed_at": "2026-10-03"},
+      "verification": {"state": "VERIFIED", "reviewed_at": "2026-10-03"}, "coverage": "VERIFIED"
+    }
   ],
-  "declared_categories": [
-    "Personal Information",
-    "Authentication",
-    "Search",
-    "Usage Data",
-    "Payment Information",
-    "Location",
-    "Device Information",
-    "Device Identifier",
-    "Network Information",
-    "Media Access",
-    "Cookies"
-  ],
-  "tracking": {
-    "advertising_libraries": true,
-    "third_party_tracking": true
-  }
+  "declared_categories": ["Personal Information", "Authentication", "Search", "Usage Data", "Payment Information", "Location", "Device Information", "Device Identifier", "Network Information", "Media Access", "Cookies"],
+  "tracking": {"advertising_libraries": true, "third_party_tracking": true}
 }

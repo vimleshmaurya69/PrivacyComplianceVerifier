@@ -1,0 +1,6 @@
+# The production framework uses only the Python standard library.
+# Pytest is included for repository verification.
+pytest>=8,<9
+
+# Experiment-only dependencies are documented in README.md and intentionally
+# kept out of the framework requirements.

@@ -1,25 +1,14 @@
 {
-  "app_name": "Meesho",
-  "policy_available": true,
-  "policy_sources": [
-    "https://www.meesho.com/legal/privacy"
+  "app_name": "Meesho", "policy_available": true, "last_verified": "2026-10-03",
+  "sources": [{"source_id": "meesho-policy", "type": "privacy_policy", "title": "Meesho Privacy Policy", "url": "https://www.meesho.com/legal/privacy"}],
+  "information_type_review": {"status": "REVIEWED_COMPLETE", "basis": "Manual review of the official policy's information-collection sections", "reviewed_at": "2026-10-03"},
+  "policy_practices": [
+    {"practice_id": "meesho-account-transaction-data", "privacy_category": "Personal Information", "artifact_types": ["Name", "Email", "Address", "Phone", "Date of Birth"], "action": "collect", "recipient_scope": "unknown", "provenance": {"source_ids": ["meesho-policy"], "locator": "Information you provide; account and transactional information", "evidence": "The policy explicitly identifies name, email address, contact or mobile number, date of birth, postal code, and transaction address information.", "reviewed_at": "2026-10-03"}, "verification": {"state": "VERIFIED", "reviewed_at": "2026-10-03"}, "coverage": "VERIFIED"},
+    {"practice_id": "meesho-device-identifiers", "privacy_category": "Device Identifier", "artifact_types": ["Device ID"], "action": "collect", "recipient_scope": "unknown", "provenance": {"source_ids": ["meesho-policy"], "locator": "Device information", "evidence": "The policy explicitly identifies unique device identifiers and mobile device IDs.", "reviewed_at": "2026-10-03"}, "verification": {"state": "VERIFIED", "reviewed_at": "2026-10-03"}, "coverage": "VERIFIED"},
+    {"practice_id": "meesho-network-identifiers", "privacy_category": "Network Information", "artifact_types": ["IP Address"], "action": "collect", "recipient_scope": "unknown", "provenance": {"source_ids": ["meesho-policy"], "locator": "Automatically collected information", "evidence": "The policy explicitly identifies IP addresses in automatically collected information.", "reviewed_at": "2026-10-03"}, "verification": {"state": "VERIFIED", "reviewed_at": "2026-10-03"}, "coverage": "VERIFIED"},
+    {"practice_id": "meesho-user-identifiers", "privacy_category": "Personal Information", "artifact_types": ["User ID"], "action": "collect", "recipient_scope": "unknown", "provenance": {"source_ids": ["meesho-policy"], "locator": "Social media information", "evidence": "The policy explicitly identifies social-media user ID.", "reviewed_at": "2026-10-03"}, "verification": {"state": "VERIFIED", "reviewed_at": "2026-10-03"}, "coverage": "VERIFIED"},
+    {"practice_id": "meesho-location-data", "privacy_category": "Location", "artifact_types": ["Location"], "action": "collect", "recipient_scope": "unknown", "provenance": {"source_ids": ["meesho-policy"], "locator": "Location information", "evidence": "The policy states that it may collect real-time location information when enabled.", "reviewed_at": "2026-10-03"}, "verification": {"state": "VERIFIED", "reviewed_at": "2026-10-03"}, "coverage": "VERIFIED"}
   ],
-  "declared_categories": [
-    "Personal Information",
-    "Authentication",
-    "Contacts",
-    "Search",
-    "Usage Data",
-    "Payment Information",
-    "Location",
-    "Device Information",
-    "Device Identifier",
-    "Network Information",
-    "Media Access",
-    "Cookies"
-  ],
-  "tracking": {
-    "advertising_libraries": true,
-    "third_party_tracking": true
-  }
+  "declared_categories": ["Personal Information", "Authentication", "Contacts", "Search", "Usage Data", "Payment Information", "Location", "Device Information", "Device Identifier", "Network Information", "Media Access", "Cookies"],
+  "tracking": {"advertising_libraries": true, "third_party_tracking": true}
 }
