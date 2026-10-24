@@ -1,0 +1,35 @@
+{
+  "schema_version": 2,
+  "application": "Synthetic Case 4 - Disclosed URL Risk",
+  "policy_available": true,
+  "source": "https://urlrisk.synthetic.test/privacy",
+  "last_verified": "2026-10-20",
+  "sources": [
+    {
+      "source_id": "synthetic-url-risk-policy",
+      "type": "privacy_policy",
+      "url": "https://urlrisk.synthetic.test/privacy",
+      "title": "Synthetic Phone Disclosure Policy",
+      "metadata": {"synthetic_fixture": true, "reviewed_at": "2026-10-20"}
+    }
+  ],
+  "declared_categories": ["Personal Information"],
+  "policy_practices": [
+    {
+      "practice_id": "synthetic-url-risk-phone",
+      "privacy_category": "Personal Information",
+      "artifact_types": ["Phone"],
+      "action": "transmit",
+      "recipient_scope": "unknown",
+      "recipient_domains": [],
+      "provenance": {
+        "source_ids": ["synthetic-url-risk-policy"],
+        "locator": "Section 1 - Phone number",
+        "evidence": "The app transmits the user's phone number to retrieve the profile.",
+        "reviewed_at": "2026-10-20"
+      },
+      "verification": {"state": "VERIFIED", "reviewed_at": "2026-10-20"},
+      "coverage": "VERIFIED"
+    }
+  ]
+}

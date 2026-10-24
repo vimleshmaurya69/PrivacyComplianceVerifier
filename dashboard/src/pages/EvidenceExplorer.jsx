@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { fetchAppDetail, getManifest } from '../api/dataLoader';
+import { fetchAppDetail, findAppInManifest, getManifest } from '../api/dataLoader';
 import { Search, Filter, Database, Shield, Globe } from 'lucide-react';
 import { RiskBadge } from '../components/RiskBadge';
 
 export function EvidenceExplorer({ selectedApp, onSelectApp }) {
   const manifest = getManifest();
-  const [currentApp, setCurrentApp] = useState(selectedApp || 'Truecaller');
+  const initialAppId = findAppInManifest(selectedApp)?.id || 'Truecaller';
+  const [currentApp, setCurrentApp] = useState(initialAppId);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -141,6 +142,10 @@ export function EvidenceExplorer({ selectedApp, onSelectApp }) {
       {loading ? (
         <div className="p-12 text-center text-slate-500 font-mono text-xs">
           Loading evidence inventory for {currentApp}...
+        </div>
+      ) : data?.loadError ? (
+        <div className="bg-rose-950/30 border border-rose-900/70 rounded-xl p-8 text-center text-rose-300 text-xs">
+          {data.loadError}
         </div>
       ) : filteredEvidence.length === 0 ? (
         <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-8 text-center text-slate-400 text-xs">

@@ -1,8 +1,9 @@
 """Capture-scoped comparison of observed and policy-declared information types.
 
 This intentionally simpler view complements, rather than replaces, the
-practice-level comparator.  It never uses a broad privacy category as proof
-that a concrete information type was disclosed.
+practice-level comparator.  A small, explicit hierarchy allows ordinary
+subtypes (for example, Latitude under Location) to be covered by a reviewed
+policy category without treating every broad category as universal coverage.
 """
 
 from collections import defaultdict
@@ -21,6 +22,7 @@ REVIEW_INCOMPLETE = "REVIEW_INCOMPLETE"
 POLICY_UNAVAILABLE = "POLICY_UNAVAILABLE"
 
 DISCLOSED = "DISCLOSED"
+BROADLY_DISCLOSED = "COVERED_BY_BROAD_POLICY_TERM"
 NOT_DISCLOSED = "NOT_DISCLOSED_IN_REVIEWED_POLICY"
 POLICY_REVIEW_INCOMPLETE = "POLICY_REVIEW_INCOMPLETE"
 DECLARED_NOT_OBSERVED = "DECLARED_NOT_OBSERVED_IN_CAPTURE"
@@ -31,6 +33,23 @@ RESULT_POTENTIAL = "POTENTIALLY_NON_COMPLIANT"
 RESULT_UNKNOWN = "CANNOT_DETERMINE"
 
 ASSESSABLE_ARTIFACTS = set(PRIVACY_CATEGORY_MAP)
+
+# Presentation-oriented hierarchy approved for the project's information-type
+# comparison.  This is deliberately small: Device Information does not cover
+# Installed Application List, and Usage Data does not automatically cover a
+# Search Query.  Explicit reviewed absence scopes override these relationships.
+BROAD_CATEGORY_COVERAGE = {
+    "Personal Information": {
+        "Address",
+        "Date of Birth",
+        "Email",
+        "Name",
+        "Phone",
+        "User ID",
+    },
+    "Location": {"Latitude", "Longitude", "Location"},
+    "Search": {"Search Query"},
+}
 
 
 def _sorted_unique(values):
@@ -149,6 +168,57 @@ def extract_policy_declarations(policy):
     return dict(grouped)
 
 
+def _verified_absence_scope(policy, artifact):
+    """Return explicit complete-review scopes that prevent broad coverage."""
+    matches = []
+    for coverage in policy.get("comparison_coverage", []):
+        if not isinstance(coverage, dict):
+            continue
+        state = str(coverage.get("state") or "").upper()
+        requested_state = str(coverage.get("requested_state") or "").upper()
+        artifacts = set(coverage.get("artifact_types") or [])
+        if (
+            state != "VERIFIED_COMPLETE"
+            and requested_state != "VERIFIED_COMPLETE"
+        ) or artifact not in artifacts:
+            continue
+        matches.append({
+            "coverage_id": coverage.get("coverage_id"),
+            "privacy_category": coverage.get("privacy_category"),
+            "artifact_types": sorted(artifacts),
+            "action": coverage.get("action"),
+            "recipient_scope": coverage.get("recipient_scope"),
+            "state": state,
+            "requested_state": requested_state,
+            "provenance": coverage.get("provenance", {}),
+        })
+    return matches
+
+
+def _broad_category_matches(policy, artifact, observed_categories):
+    """Return evidence for an approved broad-category/subtype relationship."""
+    declared_categories = set(policy.get("declared_categories") or [])
+    observed_categories = set(observed_categories or [])
+    matches = []
+    for category, artifacts in BROAD_CATEGORY_COVERAGE.items():
+        if (
+            artifact not in artifacts
+            or category not in declared_categories
+            or category not in observed_categories
+        ):
+            continue
+        matches.append({
+            "artifact_type": artifact,
+            "declared_as": category,
+            "privacy_category": category,
+            "coverage_type": "BROAD_POLICY_CATEGORY",
+            "statement": f"The reviewed policy declares {category}.",
+            "sources": _document_sources(policy),
+            "reviewed_at": policy.get("last_verified"),
+        })
+    return matches
+
+
 def build_observed_information_types(privacy_inventory):
     """Collapse occurrences to distinct information types without losing counts."""
     grouped = defaultdict(lambda: {
@@ -217,20 +287,39 @@ def compare_information_types(privacy_inventory, policy):
     for item in observed:
         artifact = item["artifact_type"]
         matches = declarations.get(artifact, [])
+        explicit_absence = _verified_absence_scope(policy, artifact)
+        broad_matches = (
+            []
+            if explicit_absence
+            else _broad_category_matches(
+                policy, artifact, item.get("privacy_categories", [])
+            )
+        )
         if matches:
             status = DISCLOSED
             reason = "EXPLICIT_INFORMATION_TYPE_FOUND"
+            policy_evidence = matches
+        elif broad_matches and review["status"] == REVIEWED_COMPLETE:
+            status = BROADLY_DISCLOSED
+            reason = "COVERED_BY_REVIEWED_BROAD_POLICY_CATEGORY"
+            policy_evidence = broad_matches
         elif review["status"] == REVIEWED_COMPLETE:
             status = NOT_DISCLOSED
-            reason = "ABSENT_FROM_REVIEWED_POLICY_SUMMARY"
+            reason = (
+                "EXPLICITLY_ABSENT_WITHIN_VERIFIED_COMPARISON_SCOPE"
+                if explicit_absence
+                else "ABSENT_FROM_REVIEWED_POLICY_SUMMARY"
+            )
+            policy_evidence = explicit_absence
         else:
             status = POLICY_REVIEW_INCOMPLETE
             reason = "POLICY_REPRESENTATION_NOT_COMPLETE_FOR_ABSENCE_DECISION"
+            policy_evidence = []
         results.append({
             **item,
             "status": status,
             "reason_code": reason,
-            "policy_evidence": matches,
+            "policy_evidence": policy_evidence,
         })
 
     for artifact, evidence in sorted(declarations.items()):
@@ -262,7 +351,10 @@ def compare_information_types(privacy_inventory, policy):
     elif (
         observed_results
         and review["status"] == REVIEWED_COMPLETE
-        and all(item["status"] == DISCLOSED for item in observed_results)
+        and all(
+            item["status"] in {DISCLOSED, BROADLY_DISCLOSED}
+            for item in observed_results
+        )
     ):
         capture_result = RESULT_COMPLIANT
     else:

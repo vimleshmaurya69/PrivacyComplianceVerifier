@@ -1,0 +1,10 @@
+{
+  "app_name": "Synthetic Case 1 - Fully Disclosed",
+  "exclude_from_aggregate": true,
+  "dataset_role": "controlled_validation",
+  "package_name": "test.privacycompliance.synthetic.disclosed",
+  "application_services": ["disclosed.synthetic.test"],
+  "third_party_services": [],
+  "har_file": "har/traffic.har",
+  "policy_file": "policy/policy.json"
+}

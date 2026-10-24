@@ -42,6 +42,15 @@ def _safe_dashboard_data_path(relative_path: str):
     return None
 
 class DashboardHandler(http.server.SimpleHTTPRequestHandler):
+    def end_headers(self):
+        # Generated reports and hashed dashboard assets change frequently while
+        # the project is being evaluated. Prevent an already-open browser tab
+        # from presenting a stale result set after a rebuild/re-analysis.
+        self.send_header("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
+        self.send_header("Pragma", "no-cache")
+        self.send_header("Expires", "0")
+        super().end_headers()
+
     def translate_path(self, path):
         clean_path = unquote(urlsplit(path).path)
 

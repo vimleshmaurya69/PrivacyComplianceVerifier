@@ -14,7 +14,10 @@ export function RiskSignalsPage({ masterResults, onSelectApp }) {
     const matchesType =
       filterType === 'ALL' ||
       (filterType === 'CREDENTIAL' && normalizedSignals.includes('CREDENTIAL')) ||
-      (filterType === 'PERSONAL' && normalizedSignals.includes('PERSONAL'));
+      (filterType === 'PERSONAL' && normalizedSignals.includes('PERSONAL')) ||
+      (filterType === 'THIRD_PARTY' && normalizedSignals.includes('THIRD PARTY')) ||
+      (filterType === 'INSTALLED_APPS' && normalizedSignals.includes('INSTALLED APP')) ||
+      (filterType === 'SEARCH' && normalizedSignals.includes('SEARCH'));
     return matchesSearch && matchesType;
   });
 
@@ -27,9 +30,9 @@ export function RiskSignalsPage({ masterResults, onSelectApp }) {
             <AlertTriangle className="w-5 h-5" />
           </div>
           <div>
-            <h2 className="text-base font-bold text-slate-100">Transmission Channel Risk Signals</h2>
+            <h2 className="text-base font-bold text-slate-100">Observed Privacy Risk Signals</h2>
             <p className="text-xs text-slate-300 mt-1 leading-relaxed">
-              Risk signals identify sensitive information placed in URL components, where it may be retained or exposed through server logs, analytics, browser history, or referrer handling.
+              Risk signals identify higher-risk transmission patterns, including sensitive URL data, installed-application inventories, and personal data or identifiers sent to classified third-party services.
             </p>
             <div className="mt-2 text-[11px] font-mono text-amber-400 bg-amber-950/40 border border-amber-900/50 p-2 rounded">
               <strong>Methodological Distinction:</strong> A risk signal is an operational security finding, NOT an automatic policy disclosure violation. Even if an application policy mentions collecting an identifier, transmitting it inside a URL query parameter constitutes a distinct privacy risk.
@@ -65,6 +68,9 @@ export function RiskSignalsPage({ masterResults, onSelectApp }) {
               <option value="ALL">All Risk Types</option>
               <option value="CREDENTIAL">Credential in URL</option>
               <option value="PERSONAL">Personal Data in URL</option>
+              <option value="THIRD_PARTY">Third-Party Sharing</option>
+              <option value="INSTALLED_APPS">Installed Apps</option>
+              <option value="SEARCH">Search Activity</option>
             </select>
           </div>
         </div>
@@ -111,7 +117,13 @@ export function RiskSignalsPage({ masterResults, onSelectApp }) {
               </div>
 
               <div className="text-[11px] text-slate-400 leading-snug">
-                {app.risk_signals.toUpperCase().includes('CREDENTIAL') ? (
+                {app.risk_signals.toUpperCase().includes('SHARED WITH A THIRD PARTY') ? (
+                  <span>Sensitive evidence was observed in outbound traffic to a classified third-party destination. This is a review signal, not an automatic policy gap.</span>
+                ) : app.risk_signals.toUpperCase().includes('INSTALLED APPLICATION') ? (
+                  <span>A structured inventory of installed application identifiers was transmitted outbound.</span>
+                ) : app.risk_signals.toUpperCase().includes('SEARCH ACTIVITY') ? (
+                  <span>User search activity was transmitted in a URL component.</span>
+                ) : app.risk_signals.toUpperCase().includes('CREDENTIAL') ? (
                   <span>Authentication token, session cookie, or API key observed in a URL component.</span>
                 ) : (
                   <span>Personal information such as a phone number, coordinates, or user ID detected in a request URL.</span>

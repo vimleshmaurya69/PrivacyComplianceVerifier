@@ -65,6 +65,31 @@ class SensitiveDataDetector:
     _MAX_STRUCTURED_JSON_RECURSION = 4
     _FREE_TEXT_CHUNK_SIZE = 512 * 1024
     _FREE_TEXT_CHUNK_OVERLAP = 512
+    _INSTALLED_APP_LIST_KEYS = {
+        "apps_installed",
+        "installed_apps",
+        "installed_packages",
+    }
+    _STRONG_SEARCH_KEYS = {
+        "fb_search_string",
+        "search_keyword",
+        "search_query",
+        "search_string",
+        "search_term",
+        "typed_keyword",
+        "typed_query",
+        "user_search_query",
+    }
+    _GENERIC_SEARCH_KEYS = {"keyword", "q", "query", "ss"}
+    _SEARCH_PATH_HINTS = {
+        "autocomplete",
+        "complete",
+        "discover",
+        "find",
+        "lookup",
+        "search",
+        "suggest",
+    }
 
     def __init__(self, requests: List[Request]):
         self.requests = requests
@@ -100,8 +125,7 @@ class SensitiveDataDetector:
 
     def create_finding(self, finding_type, source, key, value, direction=None,
                        occurrence_id=None):
-
-        return {
+        finding = {
             "type": finding_type,
             "source": source,
             "direction": direction,
@@ -110,6 +134,11 @@ class SensitiveDataDetector:
             "_raw_value": value,
             "_occurrence_id": occurrence_id,
         }
+        if finding_type == "Search Query":
+            finding["value_redacted"] = "[REDACTED SEARCH QUERY]"
+        elif finding_type == "Installed Application List":
+            finding["value_redacted"] = "[REDACTED APPLICATION INVENTORY]"
+        return finding
 
     def _safe_evidence_key(self, key):
         """Preserve field context without exporting a value-shaped key.
@@ -496,6 +525,10 @@ class SensitiveDataDetector:
         if self._is_email(value):
             return "Email"
 
+        search_type = self._classify_search_query(key, value)
+        if search_type:
+            return search_type
+
         # Phone/contact fields.  Plain numeric values require explicit field
         # context; international + numbers are handled by text scanning.
         phone_keys = {
@@ -737,6 +770,124 @@ class SensitiveDataDetector:
             re.search(r"[A-Za-z]", text)
             and re.search(r"(?:\s|,)", text)
         )
+
+    @staticmethod
+    def _is_android_package_name(value: Any) -> bool:
+        """Accept bounded Java-style package identifiers, not arbitrary text."""
+        if not isinstance(value, str):
+            return False
+        text = value.strip()
+        if not text or len(text) > 255:
+            return False
+        return bool(re.fullmatch(
+            r"[A-Za-z][A-Za-z0-9_]*(?:\.[A-Za-z0-9_]+)+",
+            text,
+        ))
+
+    def _is_search_query_value(self, value: Any) -> bool:
+        """Reject IDs, serialized payloads, URLs, and empty search placeholders."""
+        if not isinstance(value, str):
+            return False
+        text = value.strip()
+        if len(text) < 2 or len(text) > 512:
+            return False
+        if text.lower() in {
+            "all", "false", "home", "none", "null", "search", "true",
+            "undefined", "unknown",
+        }:
+            return False
+        if text.startswith(("{", "[", "http://", "https://")):
+            return False
+        if re.fullmatch(r"[-+]?\d+(?:\.\d+)?", text):
+            return False
+        if re.fullmatch(r"[0-9a-f]{16,}", text, re.IGNORECASE):
+            return False
+        if re.fullmatch(
+            r"[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-"
+            r"[89ab][0-9a-f]{3}-[0-9a-f]{12}",
+            text,
+            re.IGNORECASE,
+        ):
+            return False
+        return bool(re.search(r"[A-Za-z]", text))
+
+    def _classify_search_query(self, key: Any, value: Any, url: Any = None):
+        """Recognize explicit search fields with a narrow URL-context fallback."""
+        if not self._is_search_query_value(value):
+            return None
+
+        normalized_key = self._normalize_key(key)
+        raw_key = str(key)
+        path_parts = [
+            self._normalize_key(part)
+            for part in re.split(r"[.\[\]]+", raw_key)
+            if part
+        ]
+        key_candidates = {normalized_key}
+        if path_parts:
+            key_candidates.add(path_parts[-1])
+
+        if key_candidates & self._STRONG_SEARCH_KEYS:
+            return "Search Query"
+
+        if not key_candidates & self._GENERIC_SEARCH_KEYS:
+            return None
+
+        try:
+            path = unquote(urlsplit(str(url or "")).path or "").lower()
+        except (TypeError, ValueError):
+            return None
+        path_tokens = {
+            token
+            for token in re.split(r"[^a-z0-9]+", path)
+            if token
+        }
+        if path_tokens & self._SEARCH_PATH_HINTS:
+            return "Search Query"
+        return None
+
+    def _extract_installed_app_lists(self, data, max_depth=24, max_lists=64):
+        """Return explicit installed-app arrays containing at least two packages."""
+        matches = []
+
+        def package_names(items):
+            packages = []
+            for item in items[:512]:
+                candidate = None
+                if isinstance(item, str):
+                    candidate = item
+                elif isinstance(item, dict):
+                    for key, value in item.items():
+                        if self._normalize_key(key) in {
+                            "package", "package_id", "package_name",
+                        }:
+                            candidate = value
+                            break
+                if self._is_android_package_name(candidate):
+                    packages.append(candidate.strip())
+            return packages
+
+        def walk(value, path="", depth=0):
+            if depth > max_depth or len(matches) >= max_lists:
+                return
+            if isinstance(value, dict):
+                for key, child in list(value.items())[:10000]:
+                    child_path = f"{path}.{key}" if path else str(key)
+                    normalized = self._normalize_key(key)
+                    if (
+                        normalized in self._INSTALLED_APP_LIST_KEYS
+                        and isinstance(child, list)
+                    ):
+                        packages = package_names(child)
+                        if len(set(packages)) >= 2:
+                            matches.append((child_path, packages))
+                    walk(child, child_path, depth + 1)
+            elif isinstance(value, list):
+                for index, child in enumerate(value[:10000]):
+                    walk(child, f"{path}[{index}]", depth + 1)
+
+        walk(data)
+        return matches
 
     def _analyze_text_signals(self, value: Any, findings, source, key,
                               allow_phone=True, allow_base64=True,
@@ -1354,6 +1505,25 @@ class SensitiveDataDetector:
                 _multipart_depth=multipart_depth + 1,
             )
 
+    def _parse_json_body(self, body, body_type=None, content_type=None):
+        """Parse a body only when its MIME/type or leading token identifies JSON."""
+        if not body:
+            return None
+        media_type = self._normalized_media_type(content_type)
+        text = str(body)
+        if not (
+            body_type == "json"
+            or media_type == "application/json"
+            or media_type.endswith("+json")
+            or text.lstrip().startswith(("{", "["))
+        ):
+            return None
+        try:
+            parsed = json.loads(body)
+        except (json.JSONDecodeError, TypeError, ValueError, RecursionError):
+            return None
+        return parsed if isinstance(parsed, (dict, list)) else None
+
     def _extract_body_pairs(self, body, body_type=None, content_type=None):
         if not body:
             return []
@@ -1366,18 +1536,9 @@ class SensitiveDataDetector:
         # JavaScript, XML, or plain text as form fields merely because it
         # contains '=' or '&'.
         text = str(body)
-        if (
-            body_type == "json"
-            or media_type == "application/json"
-            or media_type.endswith("+json")
-            or text.lstrip().startswith(("{", "["))
-        ):
-            try:
-                parsed = json.loads(body)
-                if isinstance(parsed, (dict, list)):
-                    return self._extract_json_pairs(parsed)
-            except (json.JSONDecodeError, TypeError, ValueError, RecursionError):
-                pass
+        parsed = self._parse_json_body(body, body_type, content_type)
+        if parsed is not None:
+            return self._extract_json_pairs(parsed)
 
         if body_type == "form" or media_type == "application/x-www-form-urlencoded":
             try:
@@ -1588,6 +1749,30 @@ class SensitiveDataDetector:
             if decoded_body is None:
                 return
 
+        parsed_json = self._parse_json_body(
+            decoded_body, body_type, content_type
+        )
+        if parsed_json is not None:
+            for list_key, packages in self._extract_installed_app_lists(parsed_json):
+                canonical = json.dumps(
+                    packages,
+                    ensure_ascii=False,
+                    separators=(",", ":"),
+                )
+                internal_value = (
+                    "installed-app-list:"
+                    + hashlib.sha256(
+                        canonical.encode("utf-8", errors="replace")
+                    ).hexdigest()
+                )
+                findings.append(self.create_finding(
+                    "Installed Application List",
+                    source,
+                    list_key,
+                    internal_value,
+                    occurrence_id=object(),
+                ))
+
         parsed_body_pairs = self._extract_body_pairs(
             decoded_body, body_type, content_type
         )
@@ -1671,6 +1856,7 @@ class SensitiveDataDetector:
 
     def analyze(self) -> List[Request]:
         self._unique_findings.clear()
+        search_observations = []
 
         session_cookie_keys = {
             "session", "session_id", "sessionid", "session_token",
@@ -1729,6 +1915,12 @@ class SensitiveDataDetector:
                         value,
                         allow_ambiguous_name=False,
                     )
+                    if not finding_type:
+                        finding_type = self._classify_search_query(
+                            key,
+                            value,
+                            getattr(request, "url", ""),
+                        )
                     if finding_type:
                         add_finding(
                             finding_type, "Query Parameter", key, value,
@@ -1934,10 +2126,48 @@ class SensitiveDataDetector:
                 pass
 
             for finding in findings:
+                if (
+                    finding.get("type") == "Search Query"
+                    and finding.get("direction") == "outbound"
+                    and request.traffic_type in {"Application", "Third Party"}
+                    and self._is_search_query_value(finding.get("_raw_value"))
+                ):
+                    search_observations.append({
+                        "fingerprint": self._fingerprint(
+                            finding.get("_raw_value")
+                        ),
+                        "traffic_type": request.traffic_type,
+                        "domain": request.domain,
+                        "finding": finding,
+                    })
                 self._record_unique_finding(finding, request, request_index)
                 finding.pop("_raw_value", None)
                 finding.pop("_occurrence_id", None)
             request.sensitive_data = findings
+
+        by_value = {}
+        for observation in search_observations:
+            by_value.setdefault(observation["fingerprint"], []).append(observation)
+
+        for observations in by_value.values():
+            application_domains = sorted({
+                item.get("domain")
+                for item in observations
+                if item.get("traffic_type") == "Application" and item.get("domain")
+            })
+            has_third_party = any(
+                item.get("traffic_type") == "Third Party"
+                for item in observations
+            )
+            if not application_domains or not has_third_party:
+                continue
+            for observation in observations:
+                if observation.get("traffic_type") != "Third Party":
+                    continue
+                observation["finding"]["cross_domain_match"] = True
+                observation["finding"]["correlated_application_domains"] = (
+                    application_domains
+                )
 
         return self.requests
 

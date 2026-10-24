@@ -5,6 +5,7 @@ import { STATUS_CONFIG, RESULT_CONFIG } from '../api/dataLoader';
 export function AboutPage() {
   const simpleStatuses = [
     'DISCLOSED',
+    'COVERED_BY_BROAD_POLICY_TERM',
     'NOT_DISCLOSED_IN_REVIEWED_POLICY',
     'POLICY_REVIEW_INCOMPLETE',
     'DECLARED_NOT_OBSERVED_IN_CAPTURE',
@@ -35,7 +36,7 @@ export function AboutPage() {
           Capture-Scoped Result Semantics
         </h2>
         <p className="text-xs text-slate-400">
-          Each distinct outbound information type is checked against explicit statements in the reviewed policy representation. The project-facing result uses five clear states:
+          Each distinct outbound information type is checked against explicit statements and a small approved category hierarchy in the reviewed policy representation. The project-facing result uses these clear states:
         </p>
 
         <div className="space-y-3">
@@ -53,7 +54,7 @@ export function AboutPage() {
           );})}
         </div>
         <p className="text-[11px] text-amber-300 font-mono">
-          COMPLIANT WITHIN CAPTURE SCOPE is a project-defined result, not a legal compliance judgment. The exported compliance determination remains NOT DETERMINED.
+          NO DISCLOSURE GAP DETECTED means the captured comparable types were explicitly named or covered by an approved broader term. It is not a legal compliance judgment.
         </p>
         <p className="text-[11px] text-slate-500">
           REVIEWED COMPLETE means the repository's structured policy summary has a source, review date, and recorded practices; it does not claim that the publisher's legal policy is complete in every respect.

@@ -61,7 +61,9 @@ def _simple_presentation(compliance, results, summary):
 
     # Canonical information-type presentation (v1).  Keep the legacy keys
     # above available for older generated reports.
-    disclosed = comparison.get("DISCLOSED", 0)
+    explicitly_disclosed = comparison.get("DISCLOSED", 0)
+    broadly_covered = comparison.get("COVERED_BY_BROAD_POLICY_TERM", 0)
+    disclosed = explicitly_disclosed + broadly_covered
     not_disclosed = comparison.get(
         "NOT_DISCLOSED_IN_REVIEWED_POLICY", 0
     )
@@ -130,6 +132,8 @@ def _simple_presentation(compliance, results, summary):
             "status", "UNKNOWN"
         ),
         "disclosed_information_types": disclosed,
+        "explicitly_disclosed_information_types": explicitly_disclosed,
+        "broadly_covered_information_types": broadly_covered,
         "not_disclosed_information_types": not_disclosed,
         "policy_review_incomplete_types": review_incomplete,
         "declared_not_observed_types": declared_not_observed,
@@ -335,6 +339,12 @@ def build_rows(output_root=OUTPUT_ROOT, app_root=APP_ROOT):
             ),
             "disclosed_information_type_count": presentation[
                 "disclosed_information_types"
+            ],
+            "explicitly_disclosed_information_type_count": presentation[
+                "explicitly_disclosed_information_types"
+            ],
+            "broadly_covered_information_type_count": presentation[
+                "broadly_covered_information_types"
             ],
             "not_disclosed_information_type_count": presentation[
                 "not_disclosed_information_types"

@@ -139,6 +139,12 @@ class ObservedPracticeBuilder:
                     "key": key,
                     "domain": domain,
                     "traffic_type": traffic_type,
+                    "cross_domain_match": finding.get(
+                        "cross_domain_match", False
+                    ),
+                    "correlated_application_domains": list(
+                        finding.get("correlated_application_domains", [])
+                    ),
                 })
 
         practices = sorted(

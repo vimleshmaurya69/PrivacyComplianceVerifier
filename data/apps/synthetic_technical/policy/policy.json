@@ -1,0 +1,25 @@
+{
+  "schema_version": 2,
+  "application": "Synthetic Case 5 - Technical Authentication",
+  "policy_available": true,
+  "source": "https://technical.synthetic.test/privacy",
+  "last_verified": "2026-10-20",
+  "sources": [
+    {
+      "source_id": "synthetic-technical-policy",
+      "type": "privacy_policy",
+      "url": "https://technical.synthetic.test/privacy",
+      "title": "Synthetic Authentication Policy",
+      "metadata": {"synthetic_fixture": true, "reviewed_at": "2026-10-20"}
+    }
+  ],
+  "declared_categories": ["Authentication"],
+  "declared_practices": [
+    {
+      "category": "Authentication",
+      "data_type": "Account authentication and secure session information",
+      "purpose": "Keep the user signed in securely",
+      "source": "synthetic-technical-policy"
+    }
+  ]
+}

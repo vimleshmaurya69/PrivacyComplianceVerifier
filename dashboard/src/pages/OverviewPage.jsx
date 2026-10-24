@@ -103,7 +103,7 @@ export function OverviewPage({ masterResults, onSelectApp, onNavigate }) {
             <span>In Policy</span>
           </div>
           <div className="text-2xl font-bold font-mono text-emerald-400">{infoDisclosed}</div>
-          <div className="text-[11px] text-slate-500 mt-0.5">Observed types named in policy</div>
+          <div className="text-[11px] text-slate-500 mt-0.5">Explicitly named or safely covered</div>
         </div>
 
         <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-3.5">
@@ -130,7 +130,7 @@ export function OverviewPage({ masterResults, onSelectApp, onNavigate }) {
             <span>Risk Signals</span>
           </div>
           <div className="text-2xl font-bold font-mono text-rose-400">{appsWithRisks}</div>
-          <div className="text-[11px] text-slate-500 mt-0.5">Apps with URL risk signals</div>
+          <div className="text-[11px] text-slate-500 mt-0.5">Apps with transmission risk signals</div>
         </div>
       </div>
 
@@ -184,9 +184,9 @@ export function OverviewPage({ masterResults, onSelectApp, onNavigate }) {
                     <span className="text-xs font-mono font-bold text-slate-200">{count} apps ({pct}%)</span>
                   </div>
                   <div className="text-[11px] text-slate-400">
-                    {res === 'POTENTIALLY_NON_COMPLIANT' && 'At least one observed information type is not named in the reviewed policy.'}
-                    {res === 'COMPLIANT_WITHIN_CAPTURE_SCOPE' && 'Every observed policy-comparable information type is named in the reviewed policy.'}
-                    {res === 'CANNOT_DETERMINE' && 'The policy representation is incomplete, so the comparison cannot be finished.'}
+                    {res === 'POTENTIALLY_NON_COMPLIANT' && 'At least one observed information type is missing from the reviewed policy.'}
+                    {res === 'COMPLIANT_WITHIN_CAPTURE_SCOPE' && 'No gap was found: observed comparable types were named or safely covered by a broader policy term.'}
+                    {res === 'CANNOT_DETERMINE' && 'The policy or capture evidence is insufficient for a disclosure-gap decision.'}
                   </div>
                 </div>
               );
@@ -303,7 +303,7 @@ export function OverviewPage({ masterResults, onSelectApp, onNavigate }) {
                   </div>
                 ) : (
                   <div className="text-[11px] font-mono text-slate-500 bg-slate-900/40 px-2 py-0.5 rounded">
-                    No URL risk signals
+                    No detected risk signals
                   </div>
                 )}
               </div>

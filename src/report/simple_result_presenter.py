@@ -3,6 +3,7 @@
 from collections import defaultdict
 
 from src.comparator.information_type_comparator import (
+    BROADLY_DISCLOSED,
     DECLARED_NOT_OBSERVED,
     DISCLOSED,
     NOT_ASSESSABLE,
@@ -16,6 +17,7 @@ from src.comparator.information_type_comparator import (
 
 PRESENTATION_ORDER = (
     DISCLOSED,
+    BROADLY_DISCLOSED,
     NOT_DISCLOSED,
     POLICY_REVIEW_INCOMPLETE,
     DECLARED_NOT_OBSERVED,
@@ -24,6 +26,10 @@ PRESENTATION_ORDER = (
 
 PRESENTATION_MEANINGS = {
     DISCLOSED: "The reviewed policy explicitly names this information type.",
+    BROADLY_DISCLOSED: (
+        "The reviewed policy covers this information type through an approved "
+        "broader category."
+    ),
     NOT_DISCLOSED: (
         "This observed information type was not found in the reviewed policy "
         "representation."
@@ -45,10 +51,25 @@ PRESENTATION_MEANINGS = {
 RISK_TITLES = {
     "CREDENTIAL_IN_URL": "Credential observed in URL",
     "PERSONAL_DATA_IN_URL": "Personal data observed in URL",
+    "INSTALLED_APP_LIST_TRANSMITTED": "Installed application list transmitted",
+    "SEARCH_ACTIVITY_IN_URL": "Search activity observed in URL",
+    "SEARCH_ACTIVITY_SHARED_WITH_THIRD_PARTY": (
+        "Search activity shared with a third party"
+    ),
+    "PRECISE_LOCATION_SHARED_WITH_THIRD_PARTY": (
+        "Precise location shared with a third party"
+    ),
+    "PERSONAL_DATA_SHARED_WITH_THIRD_PARTY": (
+        "Personal data shared with a third party"
+    ),
+    "PERSISTENT_IDENTIFIER_SHARED_WITH_THIRD_PARTY": (
+        "Persistent identifier shared with a third party"
+    ),
 }
 
 DISPLAY_RESULTS = {
     DISCLOSED: "IN POLICY",
+    BROADLY_DISCLOSED: "COVERED BY BROADER POLICY TERM",
     NOT_DISCLOSED: "NOT IN POLICY",
     POLICY_REVIEW_INCOMPLETE: "POLICY REVIEW NEEDED",
     DECLARED_NOT_OBSERVED: "DECLARED, NOT OBSERVED",
@@ -56,9 +77,9 @@ DISPLAY_RESULTS = {
 }
 
 DISPLAY_SUMMARIES = {
-    "COMPLIANT_WITHIN_CAPTURE_SCOPE": "ALL OBSERVED TYPES DISCLOSED",
-    "POTENTIALLY_NON_COMPLIANT": "POTENTIALLY NON-COMPLIANT",
-    "CANNOT_DETERMINE": "CANNOT DETERMINE",
+    "COMPLIANT_WITHIN_CAPTURE_SCOPE": "NO DISCLOSURE GAP DETECTED IN CAPTURE",
+    "POTENTIALLY_NON_COMPLIANT": "POLICY DISCLOSURE GAP DETECTED",
+    "CANNOT_DETERMINE": "INSUFFICIENT POLICY/CAPTURE EVIDENCE",
 }
 
 
@@ -211,9 +232,12 @@ def format_simple_report(report):
     rows = []
     for item in report.get("information_type_results", []):
         observed = (item.get("occurrences") or 0) > 0
-        policy_says = "YES" if item.get("policy_evidence") else (
-            "NO" if item.get("status") == NOT_DISCLOSED else "UNCLEAR"
-        )
+        if item.get("status") in {DISCLOSED, BROADLY_DISCLOSED}:
+            policy_says = "YES"
+        elif item.get("status") == NOT_DISCLOSED:
+            policy_says = "NO"
+        else:
+            policy_says = "YES" if item.get("policy_evidence") else "UNCLEAR"
         rows.append([
             item.get("artifact_type", "Unknown"),
             "YES" if observed else "NO",

@@ -1,0 +1,51 @@
+{
+  "schema_version": 2,
+  "application": "Synthetic Case 1 - Fully Disclosed",
+  "policy_available": true,
+  "source": "https://disclosed.synthetic.test/privacy",
+  "last_verified": "2026-10-20",
+  "sources": [
+    {
+      "source_id": "synthetic-disclosed-policy",
+      "type": "privacy_policy",
+      "url": "https://disclosed.synthetic.test/privacy",
+      "title": "Synthetic Fully Disclosed Policy",
+      "metadata": {"synthetic_fixture": true, "reviewed_at": "2026-10-20"}
+    }
+  ],
+  "declared_categories": ["Personal Information", "Location"],
+  "policy_practices": [
+    {
+      "practice_id": "synthetic-disclosed-email",
+      "privacy_category": "Personal Information",
+      "artifact_types": ["Email"],
+      "action": "transmit",
+      "recipient_scope": "unknown",
+      "recipient_domains": [],
+      "provenance": {
+        "source_ids": ["synthetic-disclosed-policy"],
+        "locator": "Section 1 - Profile submission",
+        "evidence": "The app transmits the email address entered in the profile form to provide the account service.",
+        "reviewed_at": "2026-10-20"
+      },
+      "verification": {"state": "VERIFIED", "reviewed_at": "2026-10-20"},
+      "coverage": "VERIFIED"
+    },
+    {
+      "practice_id": "synthetic-disclosed-latitude",
+      "privacy_category": "Location",
+      "artifact_types": ["Latitude"],
+      "action": "transmit",
+      "recipient_scope": "unknown",
+      "recipient_domains": [],
+      "provenance": {
+        "source_ids": ["synthetic-disclosed-policy"],
+        "locator": "Section 2 - Location",
+        "evidence": "The app transmits latitude when the user submits the profile form.",
+        "reviewed_at": "2026-10-20"
+      },
+      "verification": {"state": "VERIFIED", "reviewed_at": "2026-10-20"},
+      "coverage": "VERIFIED"
+    }
+  ]
+}

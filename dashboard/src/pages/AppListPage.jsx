@@ -1,9 +1,9 @@
 import React, { useState, useMemo } from 'react';
-import { Search, ArrowUpDown, ChevronRight, Info } from 'lucide-react';
+import { Search, ArrowLeft, ArrowUpDown, ChevronRight, Info } from 'lucide-react';
 import { ResultBadge } from '../components/StatusBadge';
 import { RiskBadge } from '../components/RiskBadge';
 
-export function AppListPage({ masterResults, onSelectApp }) {
+export function AppListPage({ masterResults, onSelectApp, onNavigate }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [resultFilter, setResultFilter] = useState('ALL');
   const [riskFilter, setRiskFilter] = useState('ALL');
@@ -43,6 +43,19 @@ export function AppListPage({ masterResults, onSelectApp }) {
 
   return (
     <div className="space-y-5">
+      <div className="bg-slate-900/80 border border-cyan-900/50 rounded-xl px-4 py-3 flex items-center justify-between gap-3">
+        <div>
+          <div className="text-[10px] uppercase tracking-widest font-mono text-cyan-400">Presentation Step 3 of 3</div>
+          <div className="text-sm font-semibold text-slate-100">Original 30-App Captured Dataset</div>
+        </div>
+        <button
+          onClick={() => onNavigate?.('external')}
+          className="text-xs text-slate-400 hover:text-cyan-300 flex items-center gap-1.5 transition"
+        >
+          <ArrowLeft className="w-3.5 h-3.5" /> External dataset evaluation
+        </button>
+      </div>
+
       {/* Header and Filter Controls */}
       <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-4">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -73,9 +86,9 @@ export function AppListPage({ masterResults, onSelectApp }) {
               className="bg-slate-950 border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-cyan-500"
             >
               <option value="ALL">All Policy Results</option>
-              <option value="COMPLIANT_WITHIN_CAPTURE_SCOPE">All Comparable Types Disclosed</option>
-              <option value="POTENTIALLY_NON_COMPLIANT">Potentially Non-Compliant</option>
-              <option value="CANNOT_DETERMINE">Policy Check Incomplete</option>
+              <option value="COMPLIANT_WITHIN_CAPTURE_SCOPE">No Disclosure Gap Detected</option>
+              <option value="POTENTIALLY_NON_COMPLIANT">Policy Disclosure Gap</option>
+              <option value="CANNOT_DETERMINE">Insufficient Policy/Capture Evidence</option>
             </select>
 
             {/* Risk Filter */}
@@ -95,9 +108,8 @@ export function AppListPage({ masterResults, onSelectApp }) {
       <div className="bg-cyan-950/20 border border-cyan-900/50 rounded-xl px-4 py-3 flex items-start gap-2.5 text-xs text-slate-300">
         <Info className="w-4 h-4 text-cyan-400 mt-0.5 shrink-0" />
         <p>
-          <strong>In Policy / Not in Policy count comparable personal-data types</strong>, not raw occurrences or
-          broad categories. Authorization tokens and session cookies remain visible as technical authentication
-          evidence but do not create a policy gap. URL risk signals are checked separately.
+          <strong>In Policy / Not in Policy count comparable personal-data types</strong>, not raw occurrences. Safe broader terms are used only for approved relationships such as Location covering latitude/longitude and Personal Information covering ordinary identity/contact fields. Authorization tokens and session cookies remain visible as technical authentication
+          evidence but do not create a policy gap. Transmission-risk signals are checked separately.
         </p>
       </div>
 
@@ -192,7 +204,7 @@ export function AppListPage({ masterResults, onSelectApp }) {
                           ))}
                         </div>
                       ) : (
-                        <span className="text-[11px] text-slate-500 font-mono">No URL risk</span>
+                        <span className="text-[11px] text-slate-500 font-mono">No detected risk signal</span>
                       )}
                     </td>
                     <td className="py-3 px-4">

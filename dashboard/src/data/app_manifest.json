@@ -4,40 +4,40 @@
       "id": "antennapod",
       "app_name": "AntennaPod",
       "total_requests": 119,
-      "sensitive_occurrences": 1593,
-      "unique_artifacts": 6,
+      "sensitive_occurrences": 1594,
+      "unique_artifacts": 7,
       "output_dir": "/data/output/antennapod"
     },
     {
       "id": "Blinkit",
       "app_name": "Blinkit",
       "total_requests": 1228,
-      "sensitive_occurrences": 25140,
-      "unique_artifacts": 177,
+      "sensitive_occurrences": 25170,
+      "unique_artifacts": 189,
       "output_dir": "/data/output/Blinkit"
     },
     {
       "id": "BookMyShow",
       "app_name": "bookmyshow",
       "total_requests": 1765,
-      "sensitive_occurrences": 2263,
-      "unique_artifacts": 63,
+      "sensitive_occurrences": 2336,
+      "unique_artifacts": 67,
       "output_dir": "/data/output/BookMyShow"
     },
     {
       "id": "Canva",
       "app_name": "Canva",
       "total_requests": 2690,
-      "sensitive_occurrences": 1743,
-      "unique_artifacts": 175,
+      "sensitive_occurrences": 1744,
+      "unique_artifacts": 176,
       "output_dir": "/data/output/Canva"
     },
     {
       "id": "chrome",
       "app_name": "Google Chrome",
       "total_requests": 3143,
-      "sensitive_occurrences": 2831,
-      "unique_artifacts": 193,
+      "sensitive_occurrences": 2925,
+      "unique_artifacts": 282,
       "output_dir": "/data/output/chrome"
     },
     {
@@ -60,16 +60,16 @@
       "id": "Facebook",
       "app_name": "Facebook",
       "total_requests": 665,
-      "sensitive_occurrences": 242,
-      "unique_artifacts": 9,
+      "sensitive_occurrences": 254,
+      "unique_artifacts": 20,
       "output_dir": "/data/output/Facebook"
     },
     {
       "id": "forecastie",
       "app_name": "Forecastie",
       "total_requests": 295,
-      "sensitive_occurrences": 76,
-      "unique_artifacts": 21,
+      "sensitive_occurrences": 88,
+      "unique_artifacts": 32,
       "output_dir": "/data/output/forecastie"
     },
     {
@@ -84,16 +84,16 @@
       "id": "Google_Maps",
       "app_name": "Google Maps Web",
       "total_requests": 2275,
-      "sensitive_occurrences": 54,
-      "unique_artifacts": 18,
+      "sensitive_occurrences": 56,
+      "unique_artifacts": 20,
       "output_dir": "/data/output/Google_Maps"
     },
     {
       "id": "Hotstar",
       "app_name": "JioHotstar",
       "total_requests": 1509,
-      "sensitive_occurrences": 336,
-      "unique_artifacts": 145,
+      "sensitive_occurrences": 352,
+      "unique_artifacts": 147,
       "output_dir": "/data/output/Hotstar"
     },
     {
@@ -116,24 +116,24 @@
       "id": "meesho",
       "app_name": "Meesho",
       "total_requests": 1285,
-      "sensitive_occurrences": 3386,
-      "unique_artifacts": 69,
+      "sensitive_occurrences": 3390,
+      "unique_artifacts": 70,
       "output_dir": "/data/output/meesho"
     },
     {
       "id": "myjio",
       "app_name": "MyJio",
       "total_requests": 1081,
-      "sensitive_occurrences": 763,
-      "unique_artifacts": 93,
+      "sensitive_occurrences": 766,
+      "unique_artifacts": 96,
       "output_dir": "/data/output/myjio"
     },
     {
       "id": "naukri",
       "app_name": "Naukri",
       "total_requests": 1024,
-      "sensitive_occurrences": 1155,
-      "unique_artifacts": 80,
+      "sensitive_occurrences": 1159,
+      "unique_artifacts": 82,
       "output_dir": "/data/output/naukri"
     },
     {
@@ -156,16 +156,16 @@
       "id": "Reddit",
       "app_name": "Reddit",
       "total_requests": 1739,
-      "sensitive_occurrences": 3965,
-      "unique_artifacts": 638,
+      "sensitive_occurrences": 4042,
+      "unique_artifacts": 703,
       "output_dir": "/data/output/Reddit"
     },
     {
       "id": "Snapdeal",
       "app_name": "Snapdeal",
       "total_requests": 1551,
-      "sensitive_occurrences": 5768,
-      "unique_artifacts": 53,
+      "sensitive_occurrences": 5783,
+      "unique_artifacts": 56,
       "output_dir": "/data/output/Snapdeal"
     },
     {
@@ -196,16 +196,16 @@
       "id": "telegram",
       "app_name": "Telegram",
       "total_requests": 1071,
-      "sensitive_occurrences": 11,
-      "unique_artifacts": 2,
+      "sensitive_occurrences": 20,
+      "unique_artifacts": 10,
       "output_dir": "/data/output/telegram"
     },
     {
       "id": "Truecaller",
       "app_name": "Truecaller",
       "total_requests": 184,
-      "sensitive_occurrences": 216,
-      "unique_artifacts": 8,
+      "sensitive_occurrences": 220,
+      "unique_artifacts": 12,
       "output_dir": "/data/output/Truecaller"
     },
     {
@@ -220,16 +220,16 @@
       "id": "whatsapp",
       "app_name": "WhatsApp",
       "total_requests": 870,
-      "sensitive_occurrences": 271,
-      "unique_artifacts": 37,
+      "sensitive_occurrences": 275,
+      "unique_artifacts": 40,
       "output_dir": "/data/output/whatsapp"
     },
     {
       "id": "youtube",
       "app_name": "YouTube",
       "total_requests": 1205,
-      "sensitive_occurrences": 303,
-      "unique_artifacts": 218,
+      "sensitive_occurrences": 304,
+      "unique_artifacts": 219,
       "output_dir": "/data/output/youtube"
     },
     {
@@ -239,6 +239,74 @@
       "sensitive_occurrences": 15130,
       "unique_artifacts": 854,
       "output_dir": "/data/output/zomato"
+    }
+  ],
+  "synthetic_apps": [
+    {
+      "id": "synthetic_disclosed",
+      "scenario": "Fully disclosed information",
+      "app_name": "Synthetic Case 1 - Fully Disclosed",
+      "expected_result": "COMPLIANT_WITHIN_CAPTURE_SCOPE",
+      "expected_explanation": "Email and latitude are observed and explicitly named in the synthetic policy.",
+      "total_requests": 1,
+      "sensitive_occurrences": 2,
+      "unique_artifacts": 2,
+      "output_dir": "/data/output/synthetic_disclosed"
+    },
+    {
+      "id": "synthetic_nondisclosure",
+      "scenario": "Clear policy non-disclosure",
+      "app_name": "Synthetic Case 2 - Clear Non-Disclosure",
+      "expected_result": "POTENTIALLY_NON_COMPLIANT",
+      "expected_explanation": "A contact phone number is transmitted, while a complete synthetic policy review contains no phone or contact disclosure.",
+      "total_requests": 1,
+      "sensitive_occurrences": 1,
+      "unique_artifacts": 1,
+      "output_dir": "/data/output/synthetic_nondisclosure"
+    },
+    {
+      "id": "synthetic_partial_policy",
+      "scenario": "Incomplete policy evidence",
+      "app_name": "Synthetic Case 3 - Partial Policy",
+      "expected_result": "CANNOT_DETERMINE",
+      "expected_explanation": "A user ID is observed, but the policy only uses a broad personal-information statement and its review is explicitly incomplete.",
+      "total_requests": 1,
+      "sensitive_occurrences": 1,
+      "unique_artifacts": 1,
+      "output_dir": "/data/output/synthetic_partial_policy"
+    },
+    {
+      "id": "synthetic_url_risk",
+      "scenario": "Disclosed data sent in a risky channel",
+      "app_name": "Synthetic Case 4 - Disclosed URL Risk",
+      "expected_result": "COMPLIANT_WITHIN_CAPTURE_SCOPE",
+      "expected_explanation": "Phone transmission is disclosed, but placing the value in a URL creates a separate risk signal.",
+      "total_requests": 1,
+      "sensitive_occurrences": 1,
+      "unique_artifacts": 1,
+      "output_dir": "/data/output/synthetic_url_risk"
+    },
+    {
+      "id": "synthetic_technical",
+      "scenario": "Technical authentication evidence",
+      "app_name": "Synthetic Case 5 - Technical Authentication",
+      "expected_result": "CANNOT_DETERMINE",
+      "expected_explanation": "An authorization token remains visible as technical evidence but does not create a dashboard privacy-policy gap.",
+      "total_requests": 1,
+      "sensitive_occurrences": 1,
+      "unique_artifacts": 1,
+      "output_dir": "/data/output/synthetic_technical"
+    },
+    {
+      "id": "synthetic_limited_capture",
+      "scenario": "No relevant traffic captured",
+      "app_name": "Synthetic Case 6 - Limited Capture",
+      "expected_result": "CANNOT_DETERMINE",
+      "expected_explanation": "The policy declares email collection, but the empty capture cannot establish whether that practice occurred.",
+      "total_requests": 0,
+      "sensitive_occurrences": 0,
+      "unique_artifacts": 0,
+      "output_dir": "/data/output/synthetic_limited_capture"
     }
   ],
   "external_apps": [

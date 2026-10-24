@@ -43,10 +43,12 @@ export function AppDetailPage({ appName, onBack, onNavigateToEvidence }) {
     );
   }
 
-  if (!data || !data.statistics) {
+  if (!data || data.loadError || !data.statistics) {
     return (
       <div className="p-8 text-center bg-slate-900 border border-slate-800 rounded-xl space-y-4">
-        <p className="text-sm text-slate-400">No output directory found for application: {appName}</p>
+        <p className="text-sm text-slate-400">
+          {data?.loadError || `No output directory found for application: ${appName}`}
+        </p>
         <button onClick={onBack} className="px-4 py-2 bg-slate-800 text-xs rounded-lg text-slate-200">
           Back to Applications
         </button>
@@ -54,7 +56,7 @@ export function AppDetailPage({ appName, onBack, onNavigateToEvidence }) {
     );
   }
 
-  const { statistics, compliance, artifacts, simpleReport, appId } = data;
+  const { statistics, compliance, artifacts, inventory, simpleReport, appId } = data;
   const results = simpleReport?.information_type_results || [];
   const practiceRisks = compliance.practice_risks || [];
   const declaredTypes = simpleReport?.policy_declares?.information_types || [];
@@ -67,23 +69,26 @@ export function AppDetailPage({ appName, onBack, onNavigateToEvidence }) {
     return acc;
   }, {});
 
-  // Extract unique destinations
+  // Build exact per-domain counts from occurrence-level inventory evidence.
   const destinationMap = {};
-  artifacts.forEach(art => {
-    (art.domains || []).forEach(dom => {
+  Object.entries(inventory || {}).forEach(([trafficType, section]) => {
+    (section?.evidence || []).forEach(finding => {
+      const dom = finding.domain;
+      if (!dom) return;
       if (!destinationMap[dom]) {
-        destinationMap[dom] = { occurrences: 0, artifacts: new Set(), trafficType: art.traffic_types?.[0] || 'Unknown' };
+        destinationMap[dom] = { occurrences: 0, artifacts: new Set(), trafficTypes: new Set() };
       }
-      destinationMap[dom].occurrences += (art.occurrences || 1);
-      destinationMap[dom].artifacts.add(art.type);
+      destinationMap[dom].occurrences += 1;
+      destinationMap[dom].artifacts.add(finding.type || 'Unknown');
+      destinationMap[dom].trafficTypes.add(trafficType);
     });
   });
 
   const destinationsList = Object.entries(destinationMap).map(([domain, info]) => ({
     domain,
     occurrences: info.occurrences,
-    artifacts: Array.from(info.artifacts),
-    trafficType: info.trafficType
+    artifacts: Array.from(info.artifacts).sort(),
+    trafficType: Array.from(info.trafficTypes).sort().join(', ')
   })).sort((a, b) => b.occurrences - a.occurrences);
 
   return (
@@ -199,7 +204,7 @@ export function AppDetailPage({ appName, onBack, onNavigateToEvidence }) {
               <span className="text-lg font-bold font-mono text-slate-400">{(statistics.non_attributable_occurrences || 0).toLocaleString()}</span>
             </div>
             <div className="bg-slate-950/70 p-3 rounded-lg border border-slate-800/80">
-              <span className="text-[11px] text-slate-400 block">Unique Artifact Types</span>
+              <span className="text-[11px] text-slate-400 block">Unique Artifacts</span>
               <span className="text-lg font-bold font-mono text-cyan-400">{(statistics.unique_sensitive_artifacts || 0).toLocaleString()}</span>
             </div>
           </div>
@@ -211,7 +216,7 @@ export function AppDetailPage({ appName, onBack, onNavigateToEvidence }) {
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <AlertTriangle className="w-4 h-4 text-rose-400" />
-            <h3 className="text-sm font-semibold text-slate-200">Transmission Channel Risk Signals</h3>
+            <h3 className="text-sm font-semibold text-slate-200">Observed Privacy Risk Signals</h3>
           </div>
           <span className="text-[11px] text-slate-400 italic">
             Risk signals are independent of whether an information type appears in the policy.
@@ -381,7 +386,7 @@ export function AppDetailPage({ appName, onBack, onNavigateToEvidence }) {
                             ) : (
                               <div className="text-slate-500 italic text-[11px]">
                                 {r.status === 'TECHNICAL_AUTHENTICATION_ARTIFACT'
-                                  ? 'No policy match is required for this dashboard technical-evidence classification.'
+                                  ? 'Technical authentication evidence is excluded from the dashboard policy-gap comparison.'
                                   : 'No explicit policy practice matched this observed transmission.'}
                               </div>
                             )}

@@ -18,14 +18,17 @@ def _finding(artifact, category="Personal Information", **overrides):
     return value
 
 
-def _policy(practices, complete=True):
-    return {
+def _policy(practices, complete=True, categories=None, comparison_coverage=None):
+    policy = {
         "policy_available": True,
         "sources": [{"source_id": "policy", "url": "https://example.test/privacy"}],
         "last_verified": "2026-10-03" if complete else None,
-        "declared_categories": ["Personal Information"],
+        "declared_categories": categories or ["Personal Information"],
         "policy_practices": practices,
     }
+    if comparison_coverage is not None:
+        policy["comparison_coverage"] = comparison_coverage
+    return policy
 
 
 def _practice(artifact=None, text=None, category="Personal Information"):
@@ -73,7 +76,7 @@ def test_simple_report_is_one_decision_per_information_type_and_no_raw_values():
     assert "Policy vs Observed Network Traffic" in rendered
     assert "Phone" in rendered and "IN POLICY" in rendered
     assert "Device ID" in rendered and "NOT IN POLICY" in rendered
-    assert "Project result: POTENTIALLY NON-COMPLIANT" in rendered
+    assert "Project result: POLICY DISCLOSURE GAP DETECTED" in rendered
     assert "Separate transmission-risk signals" in rendered
     assert "+12025550147" not in rendered
 
@@ -101,23 +104,93 @@ def test_incomplete_review_does_not_turn_absence_into_non_disclosure():
     assert report["comparison"][0]["result"] == "POLICY_REVIEW_INCOMPLETE"
 
 
-def test_broad_category_does_not_disclose_specific_artifact():
+def test_personal_information_broadly_covers_ordinary_contact_subtype():
     policy = _policy([_practice(text="We collect personal information.")])
     report = build_simple_report(_inventory(_finding("Email")), {"practice_risks": []}, policy)
-    assert report["information_type_results"][0]["status"] == "NOT_DISCLOSED_IN_REVIEWED_POLICY"
+    assert report["information_type_results"][0]["status"] == "COVERED_BY_BROAD_POLICY_TERM"
+    assert report["result"] == "COMPLIANT_WITHIN_CAPTURE_SCOPE"
 
 
-def test_precise_coordinates_disclose_latitude_and_longitude_but_location_alone_does_not():
+def test_precise_coordinates_are_explicit_and_location_broadly_covers_coordinates():
     inventory = _inventory(_finding("Latitude", "Location"), _finding("Longitude", "Location"))
     coordinate_policy = _policy([_practice(text="We collect GPS coordinates.", category="Location")])
     report = build_simple_report(inventory, {"practice_risks": []}, coordinate_policy)
     observed = [item for item in report["information_type_results"] if item["occurrences"]]
     assert {item["status"] for item in observed} == {"DISCLOSED"}
 
-    broad_policy = _policy([_practice(text="We collect location.", category="Location")])
+    broad_policy = _policy(
+        [_practice(text="We collect location.", category="Location")],
+        categories=["Location"],
+    )
     broad = build_simple_report(inventory, {"practice_risks": []}, broad_policy)
     observed = [item for item in broad["information_type_results"] if item["occurrences"]]
-    assert {item["status"] for item in observed} == {"NOT_DISCLOSED_IN_REVIEWED_POLICY"}
+    assert {item["status"] for item in observed} == {"COVERED_BY_BROAD_POLICY_TERM"}
+
+
+def test_user_id_is_covered_by_personal_information_but_device_id_is_not():
+    report = build_simple_report(
+        _inventory(
+            _finding("User ID"),
+            _finding("Device ID", "Device Identifier"),
+        ),
+        {"practice_risks": []},
+        _policy([_practice(text="We collect personal information.")]),
+    )
+    statuses = {
+        item["artifact_type"]: item["status"]
+        for item in report["information_type_results"]
+        if item["occurrences"]
+    }
+    assert statuses == {
+        "Device ID": "NOT_DISCLOSED_IN_REVIEWED_POLICY",
+        "User ID": "COVERED_BY_BROAD_POLICY_TERM",
+    }
+
+
+def test_search_query_requires_search_category_not_generic_usage_data():
+    inventory = _inventory(_finding("Search Query", "Search"))
+    covered = build_simple_report(
+        inventory,
+        {"practice_risks": []},
+        _policy(
+            [_practice(text="We collect search activity.", category="Search")],
+            categories=["Search"],
+        ),
+    )
+    assert covered["information_type_results"][0]["status"] == "COVERED_BY_BROAD_POLICY_TERM"
+
+    usage_only = build_simple_report(
+        inventory,
+        {"practice_risks": []},
+        _policy(
+            [_practice(text="We collect usage data.", category="Usage Data")],
+            categories=["Usage Data"],
+        ),
+    )
+    assert usage_only["information_type_results"][0]["status"] == "NOT_DISCLOSED_IN_REVIEWED_POLICY"
+
+
+def test_explicit_reviewed_absence_overrides_broad_category_coverage():
+    policy = _policy(
+        [_practice(text="We collect personal information.")],
+        comparison_coverage=[{
+            "coverage_id": "phone-review",
+            "privacy_category": "Personal Information",
+            "artifact_types": ["Phone"],
+            "state": "VERIFIED_COMPLETE",
+            "provenance": {"locator": "Reviewed policy"},
+        }],
+    )
+    report = build_simple_report(
+        _inventory(_finding("Phone")),
+        {"practice_risks": []},
+        policy,
+    )
+    result = report["information_type_results"][0]
+    assert result["status"] == "NOT_DISCLOSED_IN_REVIEWED_POLICY"
+    assert result["reason_code"] == "EXPLICITLY_ABSENT_WITHIN_VERIFIED_COMPARISON_SCOPE"
+    assert "| Phone" in format_simple_report(report)
+    assert "| NO" in format_simple_report(report)
 
 
 def test_url_risk_stays_separate_from_disclosure_result():

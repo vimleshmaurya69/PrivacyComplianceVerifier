@@ -31,7 +31,7 @@ export function ResearchPipeline() {
       icon: AlertCircle,
       title: 'Review Signals',
       subtitle: 'Capture-Scoped Result',
-      desc: 'Disclosures, gaps, separate URL risks'
+      desc: 'Disclosures, gaps, and separate transmission risks'
     }
   ];
 

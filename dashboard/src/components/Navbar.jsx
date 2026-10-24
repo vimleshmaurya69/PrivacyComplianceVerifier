@@ -6,18 +6,22 @@ import {
   TableProperties,
   AlertTriangle,
   Beaker,
+  Database,
   Info,
-  ShieldCheck
+  ShieldCheck,
+  Network
 } from 'lucide-react';
 
 export function Navbar({ activeTab, setActiveTab, selectedApp }) {
   const navItems = [
-    { id: 'overview', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'apps', label: 'Applications', icon: Layers },
+    { id: 'validation', label: 'Controlled Tests', icon: Beaker },
+    { id: 'external', label: 'External Data', icon: Database },
+    { id: 'apps', label: '30-App Results', icon: Layers },
+    { id: 'overview', label: 'Summary', icon: LayoutDashboard },
     { id: 'policy', label: 'Policy Analysis', icon: FileCheck2 },
     { id: 'evidence', label: 'Evidence Explorer', icon: TableProperties },
     { id: 'risks', label: 'Risk Signals', icon: AlertTriangle },
-    { id: 'external', label: 'External Evaluation', icon: Beaker },
+    { id: 'thirdparty', label: 'Third Parties', icon: Network },
     { id: 'about', label: 'About', icon: Info },
   ];
 
@@ -26,7 +30,7 @@ export function Navbar({ activeTab, setActiveTab, selectedApp }) {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo & Research Titles */}
-          <div className="flex items-center gap-3 cursor-pointer" onClick={() => setActiveTab('overview')}>
+          <div className="flex items-center gap-3 cursor-pointer" onClick={() => setActiveTab('validation')}>
             <div className="w-9 h-9 rounded-lg bg-cyan-950 border border-cyan-800 flex items-center justify-center text-cyan-400 shadow-sm shadow-cyan-950">
               <ShieldCheck className="w-5 h-5" />
             </div>
@@ -42,7 +46,7 @@ export function Navbar({ activeTab, setActiveTab, selectedApp }) {
           </div>
 
           {/* Navigation Links */}
-          <nav className="flex items-center gap-1">
+          <nav className="flex items-center gap-1 overflow-x-auto">
             {navItems.map(item => {
               const Icon = item.icon;
               const isActive = activeTab === item.id;

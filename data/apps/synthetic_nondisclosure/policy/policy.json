@@ -1,0 +1,52 @@
+{
+  "schema_version": 2,
+  "application": "Synthetic Case 2 - Clear Non-Disclosure",
+  "policy_available": true,
+  "source": "https://nondisclosure.synthetic.test/privacy",
+  "last_verified": "2026-10-20",
+  "sources": [
+    {
+      "source_id": "synthetic-nondisclosure-policy",
+      "type": "privacy_policy",
+      "url": "https://nondisclosure.synthetic.test/privacy",
+      "title": "Synthetic Complete Policy Without Contact Upload",
+      "metadata": {"synthetic_fixture": true, "reviewed_at": "2026-10-20"}
+    }
+  ],
+  "declared_categories": ["Personal Information"],
+  "policy_practices": [
+    {
+      "practice_id": "synthetic-nondisclosure-email",
+      "privacy_category": "Personal Information",
+      "artifact_types": ["Email"],
+      "action": "collect",
+      "recipient_scope": "unknown",
+      "recipient_domains": [],
+      "provenance": {
+        "source_ids": ["synthetic-nondisclosure-policy"],
+        "locator": "Section 1 - Account information",
+        "evidence": "The app collects an email address to create an account.",
+        "reviewed_at": "2026-10-20"
+      },
+      "verification": {"state": "VERIFIED", "reviewed_at": "2026-10-20"},
+      "coverage": "VERIFIED"
+    }
+  ],
+  "comparison_coverage": [
+    {
+      "coverage_id": "synthetic-phone-transmission-complete-review",
+      "privacy_category": "Personal Information",
+      "artifact_types": ["Phone"],
+      "action": "transmit",
+      "recipient_scope": "unknown",
+      "recipient_domains": [],
+      "state": "VERIFIED_COMPLETE",
+      "provenance": {
+        "source_ids": ["synthetic-nondisclosure-policy"],
+        "locator": "Complete review for contact-phone transmission",
+        "evidence": "The complete synthetic policy was reviewed and contains no statement about uploading or transmitting contact phone numbers.",
+        "reviewed_at": "2026-10-20"
+      }
+    }
+  ]
+}

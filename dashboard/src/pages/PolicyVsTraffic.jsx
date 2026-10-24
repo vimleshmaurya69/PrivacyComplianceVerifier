@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { fetchAppDetail, getManifest, STATUS_CONFIG } from '../api/dataLoader';
+import { fetchAppDetail, findAppInManifest, getManifest, STATUS_CONFIG } from '../api/dataLoader';
 import { StatusBadge } from '../components/StatusBadge';
 import { FileCheck, ChevronDown, ChevronRight, Search, ShieldCheck } from 'lucide-react';
 
 export function PolicyVsTraffic({ selectedApp, onSelectApp }) {
   const manifest = getManifest();
-  const [currentApp, setCurrentApp] = useState(selectedApp || 'Truecaller');
+  const initialAppId = findAppInManifest(selectedApp)?.id || 'Truecaller';
+  const [currentApp, setCurrentApp] = useState(initialAppId);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [expandedRow, setExpandedRow] = useState(null);
@@ -63,6 +64,10 @@ export function PolicyVsTraffic({ selectedApp, onSelectApp }) {
         <div className="p-12 text-center text-slate-500 font-mono text-xs">
           Loading comparison data for {currentApp}...
         </div>
+      ) : data?.loadError ? (
+        <div className="bg-rose-950/30 border border-rose-900/70 rounded-xl p-8 text-center text-rose-300 text-xs">
+          {data.loadError}
+        </div>
       ) : results.length === 0 ? (
         <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-8 text-center text-slate-400 text-xs">
           No structured policy comparison records found for {data?.appName || currentApp}.
@@ -105,7 +110,7 @@ export function PolicyVsTraffic({ selectedApp, onSelectApp }) {
                         <td className="py-3 px-3 text-center">
                           {isTechnicalAuthentication ? (
                             <span className="px-2 py-0.5 rounded font-mono text-[10px] font-semibold bg-sky-950 text-sky-400 border border-sky-800">
-                              NOT REQUIRED
+                              EXCLUDED
                             </span>
                           ) : isDeclared ? (
                             <span className="px-2 py-0.5 rounded font-mono text-[10px] font-semibold bg-emerald-950 text-emerald-400 border border-emerald-800">

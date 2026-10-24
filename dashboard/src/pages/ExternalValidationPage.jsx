@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { getManifest, fetchExternalAppDetail } from '../api/dataLoader';
-import { Beaker, ShieldCheck, AlertCircle, FileText, ChevronRight, ArrowLeft } from 'lucide-react';
+import { Beaker, ShieldCheck, AlertCircle, FileText, ChevronRight, ArrowLeft, ArrowRight } from 'lucide-react';
 
-export function ExternalValidationPage() {
+export function ExternalValidationPage({ onNavigate }) {
   const manifest = getManifest();
   const externalApps = manifest.external_apps || [];
   const [selectedAppId, setSelectedAppId] = useState(null);
@@ -27,6 +27,25 @@ export function ExternalValidationPage() {
 
   return (
     <div className="space-y-6">
+      <div className="bg-slate-900/80 border border-cyan-900/50 rounded-xl px-4 py-3 flex items-center justify-between gap-3">
+        <button
+          onClick={() => onNavigate?.('validation')}
+          className="text-xs text-slate-400 hover:text-cyan-300 flex items-center gap-1.5 transition"
+        >
+          <ArrowLeft className="w-3.5 h-3.5" /> Controlled validation
+        </button>
+        <div className="text-center">
+          <div className="text-[10px] uppercase tracking-widest font-mono text-cyan-400">Presentation Step 2 of 3</div>
+          <div className="text-sm font-semibold text-slate-100">External Public Datasets</div>
+        </div>
+        <button
+          onClick={() => onNavigate?.('apps')}
+          className="text-xs text-cyan-300 hover:text-cyan-200 flex items-center gap-1.5 transition"
+        >
+          Original 30-app dataset <ArrowRight className="w-3.5 h-3.5" />
+        </button>
+      </div>
+
       {/* Disclaimer and Research Scope Banner */}
       <div className="bg-slate-900/80 border border-cyan-900/40 rounded-xl p-5 space-y-2">
         <div className="flex items-center gap-2">
@@ -77,7 +96,7 @@ export function ExternalValidationPage() {
               <span className="text-xl font-bold font-mono text-indigo-300">{appDetail.sensitive_occurrences}</span>
             </div>
             <div className="bg-slate-900 p-4 rounded-xl border border-slate-800">
-              <span className="text-xs text-slate-400 block">Unique Artifact Types</span>
+              <span className="text-xs text-slate-400 block">Unique Artifacts</span>
               <span className="text-xl font-bold font-mono text-cyan-400">{appDetail.unique_artifacts}</span>
             </div>
             <div className="bg-slate-900 p-4 rounded-xl border border-slate-800">

@@ -1,0 +1,10 @@
+{
+  "app_name": "Synthetic Case 6 - Limited Capture",
+  "exclude_from_aggregate": true,
+  "dataset_role": "controlled_validation",
+  "package_name": "test.privacycompliance.synthetic.limited",
+  "application_services": ["limited.synthetic.test"],
+  "third_party_services": [],
+  "har_file": "har/traffic.har",
+  "policy_file": "policy/policy.json"
+}

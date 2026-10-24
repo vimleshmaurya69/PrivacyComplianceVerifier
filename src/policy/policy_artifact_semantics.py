@@ -109,6 +109,22 @@ def extract_explicit_policy_artifacts(value, category=None):
     if re.search(r"\bpassword(?:s)?\b", text):
         add("Password")
 
+    if re.search(
+        r"\b(?:search (?:query|queries|term|terms|keyword|keywords)"
+        r"|queries entered (?:into|in) (?:a |the )?search"
+        r"|search-related interactions?)\b",
+        text,
+    ):
+        add("Search Query")
+
+    if re.search(
+        r"\b(?:installed apps?|installed applications?"
+        r"|apps? installed on (?:the|your|a) device"
+        r"|applications? installed on (?:the|your|a) device)\b",
+        text,
+    ):
+        add("Installed Application List")
+
     return artifacts
 
 

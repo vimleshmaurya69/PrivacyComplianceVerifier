@@ -1,0 +1,10 @@
+{
+  "app_name": "Synthetic Case 3 - Partial Policy",
+  "exclude_from_aggregate": true,
+  "dataset_role": "controlled_validation",
+  "package_name": "test.privacycompliance.synthetic.partial",
+  "application_services": ["partial.synthetic.test"],
+  "third_party_services": [],
+  "har_file": "har/traffic.har",
+  "policy_file": "policy/policy.json"
+}

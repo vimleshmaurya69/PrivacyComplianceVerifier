@@ -51,6 +51,16 @@ PRIVACY_CATEGORY_MAP = {
     "MAC Address": "Device Identifier",
 
     # --------------------------------------------------
+    # Device Information
+    # --------------------------------------------------
+    "Installed Application List": "Device Information",
+
+    # --------------------------------------------------
+    # Search / Behavioural Information
+    # --------------------------------------------------
+    "Search Query": "Search",
+
+    # --------------------------------------------------
     # Network Information
     # --------------------------------------------------
     "IP Address": "Network Information",

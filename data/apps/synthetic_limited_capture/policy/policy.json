@@ -1,0 +1,35 @@
+{
+  "schema_version": 2,
+  "application": "Synthetic Case 6 - Limited Capture",
+  "policy_available": true,
+  "source": "https://limited.synthetic.test/privacy",
+  "last_verified": "2026-10-20",
+  "sources": [
+    {
+      "source_id": "synthetic-limited-policy",
+      "type": "privacy_policy",
+      "url": "https://limited.synthetic.test/privacy",
+      "title": "Synthetic Limited Capture Policy",
+      "metadata": {"synthetic_fixture": true, "reviewed_at": "2026-10-20"}
+    }
+  ],
+  "declared_categories": ["Personal Information"],
+  "policy_practices": [
+    {
+      "practice_id": "synthetic-limited-email",
+      "privacy_category": "Personal Information",
+      "artifact_types": ["Email"],
+      "action": "collect",
+      "recipient_scope": "unknown",
+      "recipient_domains": [],
+      "provenance": {
+        "source_ids": ["synthetic-limited-policy"],
+        "locator": "Section 1 - Account creation",
+        "evidence": "The app collects an email address when an account is created.",
+        "reviewed_at": "2026-10-20"
+      },
+      "verification": {"state": "VERIFIED", "reviewed_at": "2026-10-20"},
+      "coverage": "VERIFIED"
+    }
+  ]
+}

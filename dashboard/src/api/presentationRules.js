@@ -23,7 +23,11 @@ export function buildDashboardPresentation(simpleReport = {}) {
   const observedComparable = results.filter(
     result => (result.occurrences || 0) > 0 && result.status !== TECHNICAL_AUTHENTICATION_STATUS
   );
-  const disclosed = observedComparable.filter(result => result.status === 'DISCLOSED').length;
+  const explicitlyDisclosed = observedComparable.filter(result => result.status === 'DISCLOSED').length;
+  const broadlyCovered = observedComparable.filter(
+    result => result.status === 'COVERED_BY_BROAD_POLICY_TERM'
+  ).length;
+  const disclosed = explicitlyDisclosed + broadlyCovered;
   const notDisclosed = observedComparable.filter(
     result => result.status === 'NOT_DISCLOSED_IN_REVIEWED_POLICY'
   ).length;
@@ -49,6 +53,8 @@ export function buildDashboardPresentation(simpleReport = {}) {
     result,
     dashboard_summary: {
       disclosed_information_type_count: disclosed,
+      explicitly_disclosed_information_type_count: explicitlyDisclosed,
+      broadly_covered_information_type_count: broadlyCovered,
       not_disclosed_information_type_count: notDisclosed,
       policy_review_incomplete_type_count: reviewIncomplete + unclassifiedComparable,
       technical_authentication_artifact_count: technicalEvidence.length

@@ -22,6 +22,14 @@ data/output/
 *.log
 *.tmp
 *.bak
+tmp/
+.codex/
+.chart-data-*/
+.pytest_cache/
+dashboard/.pytest_cache/
+
+# Generated research-paper render/build artifacts
+research_paper/.build/
 
 # Environment / secrets
 .env

@@ -1,0 +1,47 @@
+{
+  "schema_version": 2,
+  "application": "Synthetic Case 3 - Partial Policy",
+  "policy_available": true,
+  "source": "https://partial.synthetic.test/privacy",
+  "last_verified": "2026-10-20",
+  "information_type_review": {
+    "status": "REVIEW_INCOMPLETE",
+    "basis": "The synthetic policy contains only a broad personal-information statement and no complete information-type inventory.",
+    "reviewed_at": "2026-10-20"
+  },
+  "sources": [
+    {
+      "source_id": "synthetic-partial-policy",
+      "type": "privacy_policy",
+      "url": "https://partial.synthetic.test/privacy",
+      "title": "Synthetic Incomplete Policy",
+      "metadata": {"synthetic_fixture": true, "reviewed_at": "2026-10-20"}
+    }
+  ],
+  "declared_categories": ["Personal Information"],
+  "declared_practices": [
+    {
+      "category": "Personal Information",
+      "data_type": "Personal information may be collected when the service is used",
+      "purpose": "Provide the service",
+      "source": "synthetic-partial-policy"
+    }
+  ],
+  "comparison_coverage": [
+    {
+      "coverage_id": "synthetic-user-id-partial-review",
+      "privacy_category": "Personal Information",
+      "artifact_types": ["User ID"],
+      "action": "transmit",
+      "recipient_scope": "unknown",
+      "recipient_domains": [],
+      "state": "PARTIAL",
+      "provenance": {
+        "source_ids": ["synthetic-partial-policy"],
+        "locator": "Incomplete information inventory",
+        "evidence": "The synthetic policy only uses the broad phrase personal information and does not provide a complete information-type inventory.",
+        "reviewed_at": "2026-10-20"
+      }
+    }
+  ]
+}

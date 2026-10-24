@@ -8,6 +8,8 @@ EXACT_CATEGORY_MAPPINGS = {
     "Device Identifier": "Device Identifier",
     "Network Information": "Network Information",
     "Contacts": "Contacts",
+    "Device Information": "Device Information",
+    "Search": "Search",
 }
 
 # These runtime findings remain evidence, but have no policy category that is

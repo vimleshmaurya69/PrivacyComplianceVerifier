@@ -103,6 +103,7 @@ def test_aggregate_exports_capture_scoped_information_type_fields(tmp_path):
             ],
             "comparison": [
                 {"result": "DISCLOSED", "information_type_count": 1},
+                {"result": "COVERED_BY_BROAD_POLICY_TERM", "information_type_count": 2},
                 {
                     "result": "NOT_DISCLOSED_IN_REVIEWED_POLICY",
                     "information_type_count": 1,
@@ -121,7 +122,9 @@ def test_aggregate_exports_capture_scoped_information_type_fields(tmp_path):
     row = build_rows(tmp_path)[0]
     assert row["policy_review_status"] == "REVIEWED_COMPLETE"
     assert row["observed_information_type_count"] == 2
-    assert row["disclosed_information_type_count"] == 1
+    assert row["disclosed_information_type_count"] == 3
+    assert row["explicitly_disclosed_information_type_count"] == 1
+    assert row["broadly_covered_information_type_count"] == 2
     assert row["not_disclosed_information_type_count"] == 1
     assert row["declared_not_observed_type_count"] == 2
     assert row["capture_scoped_result"] == "POTENTIALLY_NON_COMPLIANT"

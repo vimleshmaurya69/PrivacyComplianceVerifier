@@ -9,6 +9,12 @@ export const STATUS_CONFIG = {
     badge: 'bg-emerald-500',
     description: 'The reviewed policy explicitly names this information type.'
   },
+  'COVERED_BY_BROAD_POLICY_TERM': {
+    label: 'COVERED BY BROADER POLICY TERM',
+    color: 'bg-teal-500/10 text-teal-300 border-teal-500/30',
+    badge: 'bg-teal-400',
+    description: 'The reviewed policy covers this subtype through an approved broader category such as Personal Information or Location.'
+  },
   'NOT_DISCLOSED_IN_REVIEWED_POLICY': {
     label: 'NOT IN POLICY',
     color: 'bg-rose-500/10 text-rose-400 border-rose-500/30',
@@ -89,17 +95,17 @@ export function normalizeStatus(status) {
 
 export const RESULT_CONFIG = {
   'COMPLIANT_WITHIN_CAPTURE_SCOPE': {
-    label: 'ALL COMPARABLE TYPES DISCLOSED',
+    label: 'NO DISCLOSURE GAP DETECTED',
     color: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/40',
     indicator: 'emerald'
   },
   'POTENTIALLY_NON_COMPLIANT': {
-    label: 'POTENTIALLY NON-COMPLIANT',
+    label: 'POLICY DISCLOSURE GAP',
     color: 'bg-rose-500/15 text-rose-400 border-rose-500/40',
     indicator: 'rose'
   },
   'CANNOT_DETERMINE': {
-    label: 'POLICY CHECK INCOMPLETE',
+    label: 'INSUFFICIENT POLICY/CAPTURE EVIDENCE',
     color: 'bg-amber-500/15 text-amber-400 border-amber-500/40',
     indicator: 'amber'
   },
@@ -142,8 +148,16 @@ export function findAppInManifest(appIdentifier) {
   ) || null;
 }
 
+export function findSyntheticAppInManifest(appIdentifier) {
+  if (!appIdentifier) return null;
+  const lower = appIdentifier.toLowerCase();
+  return (manifest.synthetic_apps || []).find(
+    app => app.id.toLowerCase() === lower || app.app_name.toLowerCase() === lower
+  ) || null;
+}
+
 export async function fetchMasterResults() {
-  const res = await fetch('/data/analysis/master_results.json');
+  const res = await fetch('/data/analysis/master_results.json', { cache: 'no-store' });
   if (!res.ok) {
     throw new Error(`Unable to load master results (HTTP ${res.status})`);
   }
@@ -173,7 +187,7 @@ export async function fetchMasterResults() {
     const appInfo = findAppInManifest(row.application);
     if (!appInfo) return row;
     try {
-      const response = await fetch(`/data/output/${appInfo.id}/compliance_results.json`);
+      const response = await fetch(`/data/output/${appInfo.id}/compliance_results.json`, { cache: 'no-store' });
       if (!response.ok) return row;
       const compliance = await response.json();
       return applyDashboardPresentationToRow(row, compliance?.simple_report);
@@ -189,16 +203,25 @@ export async function fetchAppDetail(appId) {
   const folder = appInfo ? appInfo.id : appId;
 
   const [statsRes, compRes, artRes, invRes] = await Promise.allSettled([
-    fetch(`/data/output/${folder}/statistics.json`).then(r => r.ok ? r.json() : null),
-    fetch(`/data/output/${folder}/compliance_results.json`).then(r => r.ok ? r.json() : null),
-    fetch(`/data/output/${folder}/sensitive_artifacts.json`).then(r => r.ok ? r.json() : null),
-    fetch(`/data/output/${folder}/privacy_inventory.json`).then(r => r.ok ? r.json() : null)
+    fetch(`/data/output/${folder}/statistics.json`, { cache: 'no-store' }).then(r => r.ok ? r.json() : null),
+    fetch(`/data/output/${folder}/compliance_results.json`, { cache: 'no-store' }).then(r => r.ok ? r.json() : null),
+    fetch(`/data/output/${folder}/sensitive_artifacts.json`, { cache: 'no-store' }).then(r => r.ok ? r.json() : null),
+    fetch(`/data/output/${folder}/privacy_inventory.json`, { cache: 'no-store' }).then(r => r.ok ? r.json() : null)
   ]);
 
   const statistics = statsRes.status === 'fulfilled' ? statsRes.value : null;
   const compliance = compRes.status === 'fulfilled' ? compRes.value : null;
   const artifacts = artRes.status === 'fulfilled' ? artRes.value : [];
   const inventory = invRes.status === 'fulfilled' ? invRes.value : {};
+
+  const missingFiles = [];
+  if (!statistics) missingFiles.push('statistics.json');
+  if (!compliance) missingFiles.push('compliance_results.json');
+  if (!Array.isArray(artifacts)) missingFiles.push('sensitive_artifacts.json');
+  if (!inventory || typeof inventory !== 'object') missingFiles.push('privacy_inventory.json');
+  const loadError = missingFiles.length
+    ? `Dashboard output is incomplete for ${appInfo?.app_name || folder}: missing or invalid ${missingFiles.join(', ')}.`
+    : null;
 
   // Standardize simple report if not baked into compliance_results
   const rawSimpleReport = compliance?.simple_report || deriveSimpleReport(compliance, inventory);
@@ -207,12 +230,118 @@ export async function fetchAppDetail(appId) {
   return {
     appId: folder,
     appName: statistics?.app_name || appInfo?.app_name || folder,
-    statistics: statistics || {},
+    loadError,
+    statistics,
     compliance: compliance || {},
     artifacts: Array.isArray(artifacts) ? artifacts : [],
     inventory: inventory || {},
     simpleReport: simpleReport
   };
+}
+
+export async function fetchSyntheticAppDetail(appId) {
+  const appInfo = findSyntheticAppInManifest(appId);
+  if (!appInfo) return null;
+
+  const [statsRes, compRes, artRes, invRes] = await Promise.all([
+    fetch(`${appInfo.output_dir}/statistics.json`),
+    fetch(`${appInfo.output_dir}/compliance_results.json`),
+    fetch(`${appInfo.output_dir}/sensitive_artifacts.json`),
+    fetch(`${appInfo.output_dir}/privacy_inventory.json`)
+  ]);
+
+  if (!statsRes.ok || !compRes.ok || !artRes.ok || !invRes.ok) {
+    throw new Error(`Synthetic output is incomplete for ${appInfo.app_name}`);
+  }
+
+  const [statistics, compliance, artifacts, inventory] = await Promise.all([
+    statsRes.json(),
+    compRes.json(),
+    artRes.json(),
+    invRes.json()
+  ]);
+  const rawSimpleReport = compliance?.simple_report || deriveSimpleReport(compliance, inventory);
+
+  return {
+    ...appInfo,
+    statistics,
+    compliance,
+    artifacts: Array.isArray(artifacts) ? artifacts : [],
+    inventory,
+    rawSimpleReport,
+    simpleReport: buildDashboardPresentation(rawSimpleReport)
+  };
+}
+
+const THIRD_PARTY_SERVICE_RULES = [
+  { pattern: /clevertap|wzrkt/i, provider: 'CleverTap', service: 'Customer engagement & analytics' },
+  { pattern: /newrelic/i, provider: 'New Relic', service: 'Performance monitoring' },
+  { pattern: /braze/i, provider: 'Braze', service: 'Customer engagement' },
+  { pattern: /facebook|fbcdn|instagram/i, provider: 'Meta', service: 'Social / advertising' },
+  { pattern: /pubmatic|doubleclick|googleadservices/i, provider: 'Advertising service', service: 'Advertising' },
+  { pattern: /razorpay/i, provider: 'Razorpay', service: 'Payments' },
+  { pattern: /juspay/i, provider: 'Juspay', service: 'Payments' },
+  { pattern: /google-analytics|googletagmanager|firebase/i, provider: 'Google analytics service', service: 'Analytics' }
+];
+
+function describeThirdParty(domain) {
+  const match = THIRD_PARTY_SERVICE_RULES.find(rule => rule.pattern.test(domain || ''));
+  return match || { provider: domain || 'Unknown third party', service: 'Third-party service' };
+}
+
+function thirdPartyRiskLevel(types) {
+  const values = new Set(types);
+  if ([
+    'Installed Application List', 'Search Query', 'Latitude', 'Longitude', 'Location',
+    'Email', 'Phone', 'Name', 'Address', 'Date of Birth'
+  ].some(type => values.has(type))) return 'HIGH';
+  if (['User ID', 'Device ID', 'IP Address'].some(type => values.has(type))) return 'MEDIUM';
+  return 'INFORMATIONAL';
+}
+
+export async function fetchThirdPartyFlows() {
+  const appRows = await Promise.all(manifest.primary_apps.map(async app => {
+    try {
+      const [inventoryResponse, complianceResponse] = await Promise.all([
+        fetch(`/data/output/${app.id}/privacy_inventory.json`, { cache: 'no-store' }),
+        fetch(`/data/output/${app.id}/compliance_results.json`, { cache: 'no-store' })
+      ]);
+      if (!inventoryResponse.ok) return [];
+      const inventory = await inventoryResponse.json();
+      const compliance = complianceResponse.ok ? await complianceResponse.json() : {};
+      const report = buildDashboardPresentation(compliance?.simple_report || {});
+      const policyByArtifact = new Map(
+        (report.information_type_results || []).map(item => [item.artifact_type, item.status])
+      );
+      const grouped = new Map();
+      for (const item of inventory?.['Third Party']?.evidence || []) {
+        if (item?.direction !== 'outbound' || !item.domain || !item.type) continue;
+        const key = item.domain;
+        if (!grouped.has(key)) grouped.set(key, new Map());
+        const types = grouped.get(key);
+        types.set(item.type, (types.get(item.type) || 0) + 1);
+      }
+      return Array.from(grouped.entries()).map(([domain, typeCounts]) => {
+        const artifactTypes = Array.from(typeCounts.entries())
+          .map(([type, occurrences]) => ({ type, occurrences, policyStatus: policyByArtifact.get(type) || 'NOT_COMPARABLE' }))
+          .sort((a, b) => b.occurrences - a.occurrences || a.type.localeCompare(b.type));
+        const { provider, service } = describeThirdParty(domain);
+        return {
+          appId: app.id,
+          appName: app.app_name,
+          domain,
+          provider,
+          service,
+          artifactTypes,
+          occurrences: artifactTypes.reduce((sum, item) => sum + item.occurrences, 0),
+          riskLevel: thirdPartyRiskLevel(artifactTypes.map(item => item.type))
+        };
+      });
+    } catch {
+      return [];
+    }
+  }));
+  return appRows.flat().sort((a, b) => b.occurrences - a.occurrences);
 }
 
 // Fallback logic matching aggregate_results.py _simple_presentation
@@ -316,7 +445,14 @@ function deriveSimpleReport(compliance, inventory) {
   const risks = (compliance.practice_risks || []).map(r => ({
     type: r.type,
     title: r.type === 'CREDENTIAL_IN_URL' ? 'Credential observed in URL' :
-           r.type === 'PERSONAL_DATA_IN_URL' ? 'Personal data observed in URL' : (r.type || 'Review signal'),
+           r.type === 'PERSONAL_DATA_IN_URL' ? 'Personal data observed in URL' :
+           r.type === 'INSTALLED_APP_LIST_TRANSMITTED' ? 'Installed application list transmitted' :
+           r.type === 'SEARCH_ACTIVITY_IN_URL' ? 'Search activity observed in URL' :
+           r.type === 'SEARCH_ACTIVITY_SHARED_WITH_THIRD_PARTY' ? 'Search activity shared with a third party' :
+           r.type === 'PRECISE_LOCATION_SHARED_WITH_THIRD_PARTY' ? 'Precise location shared with a third party' :
+           r.type === 'PERSONAL_DATA_SHARED_WITH_THIRD_PARTY' ? 'Personal data shared with a third party' :
+           r.type === 'PERSISTENT_IDENTIFIER_SHARED_WITH_THIRD_PARTY' ? 'Persistent identifier shared with a third party' :
+           (r.type || 'Review signal'),
     severity: r.severity || 'MEDIUM',
     explanation: r.explanation || '',
     evidence_count: (r.evidence || []).length

@@ -42,14 +42,20 @@ class PrivacyInventoryGenerator:
 
                 if category:
                     section["privacy_categories"].add(category)
-                    section["evidence"].append({
+                    evidence = {
                         "type": finding.get("type"),
                         "privacy_category": category,
                         "source": finding.get("source"),
                         "direction": finding.get("direction"),
                         "key": finding.get("key"),
                         "domain": finding.get("domain", request.domain),
-                    })
+                    }
+                    if finding.get("cross_domain_match") is True:
+                        evidence["cross_domain_match"] = True
+                        evidence["correlated_application_domains"] = list(
+                            finding.get("correlated_application_domains", [])
+                        )
+                    section["evidence"].append(evidence)
 
         # Convert sets into sorted lists for JSON serialization
         for section in inventory.values():

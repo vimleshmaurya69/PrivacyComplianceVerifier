@@ -7,11 +7,13 @@ import { PolicyVsTraffic } from './pages/PolicyVsTraffic';
 import { RiskSignalsPage } from './pages/RiskSignalsPage';
 import { EvidenceExplorer } from './pages/EvidenceExplorer';
 import { ExternalValidationPage } from './pages/ExternalValidationPage';
+import { SyntheticValidationPage } from './pages/SyntheticValidationPage';
+import { ThirdPartyFlowsPage } from './pages/ThirdPartyFlowsPage';
 import { AboutPage } from './pages/AboutPage';
 import { fetchMasterResults } from './api/dataLoader';
 
 export function App() {
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState('validation');
   const [selectedApp, setSelectedApp] = useState(null);
   const [masterResults, setMasterResults] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -57,6 +59,10 @@ export function App() {
           </div>
         ) : (
           <>
+            {activeTab === 'validation' && (
+              <SyntheticValidationPage onNavigate={setActiveTab} />
+            )}
+
             {activeTab === 'overview' && (
               <OverviewPage
                 masterResults={masterResults}
@@ -69,6 +75,7 @@ export function App() {
               <AppListPage
                 masterResults={masterResults}
                 onSelectApp={handleSelectApp}
+                onNavigate={setActiveTab}
               />
             )}
 
@@ -101,8 +108,12 @@ export function App() {
               />
             )}
 
+            {activeTab === 'thirdparty' && (
+              <ThirdPartyFlowsPage onSelectApp={handleSelectApp} />
+            )}
+
             {activeTab === 'external' && (
-              <ExternalValidationPage />
+              <ExternalValidationPage onNavigate={setActiveTab} />
             )}
 
             {activeTab === 'about' && (
