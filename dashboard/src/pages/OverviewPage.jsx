@@ -62,6 +62,12 @@ export function OverviewPage({ masterResults, onSelectApp, onNavigate }) {
   const thirdPartyReqs = masterResults.reduce((acc, r) => acc + (r.third_party_requests || 0), 0);
   const androidReqs = masterResults.reduce((acc, r) => acc + (r.android_requests || 0), 0);
   const unknownReqs = masterResults.reduce((acc, r) => acc + (r.unknown_requests || 0), 0);
+  const trafficPercent = requests => totalRequests
+    ? ((requests / totalRequests) * 100).toFixed(1)
+    : '0.0';
+  const trafficWidth = requests => totalRequests
+    ? `${(requests / totalRequests) * 100}%`
+    : '0%';
 
   return (
     <div className="space-y-6">
@@ -208,40 +214,40 @@ export function OverviewPage({ masterResults, onSelectApp, onNavigate }) {
             <div className="p-3 bg-slate-950/70 border border-slate-800/80 rounded-lg space-y-2">
               <div className="flex justify-between text-xs">
                 <span className="text-slate-300 font-medium">Application-Attributed Traffic</span>
-                <span className="font-mono text-cyan-400">{appReqs.toLocaleString()} ({((appReqs / totalRequests) * 100).toFixed(1)}%)</span>
+                <span className="font-mono text-cyan-400">{appReqs.toLocaleString()} ({trafficPercent(appReqs)}%)</span>
               </div>
               <div className="h-1.5 bg-slate-900 rounded-full overflow-hidden">
-                <div className="h-full bg-cyan-500 rounded-full" style={{ width: `${(appReqs / totalRequests) * 100}%` }} />
+                <div className="h-full bg-cyan-500 rounded-full" style={{ width: trafficWidth(appReqs) }} />
               </div>
             </div>
 
             <div className="p-3 bg-slate-950/70 border border-slate-800/80 rounded-lg space-y-2">
               <div className="flex justify-between text-xs">
                 <span className="text-slate-300 font-medium">Third-Party & Ad/Analytics</span>
-                <span className="font-mono text-indigo-400">{thirdPartyReqs.toLocaleString()} ({((thirdPartyReqs / totalRequests) * 100).toFixed(1)}%)</span>
+                <span className="font-mono text-indigo-400">{thirdPartyReqs.toLocaleString()} ({trafficPercent(thirdPartyReqs)}%)</span>
               </div>
               <div className="h-1.5 bg-slate-900 rounded-full overflow-hidden">
-                <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${(thirdPartyReqs / totalRequests) * 100}%` }} />
+                <div className="h-full bg-indigo-500 rounded-full" style={{ width: trafficWidth(thirdPartyReqs) }} />
               </div>
             </div>
 
             <div className="p-3 bg-slate-950/70 border border-slate-800/80 rounded-lg space-y-2">
               <div className="flex justify-between text-xs">
                 <span className="text-slate-300 font-medium">Android System Traffic</span>
-                <span className="font-mono text-amber-400">{androidReqs.toLocaleString()} ({((androidReqs / totalRequests) * 100).toFixed(1)}%)</span>
+                <span className="font-mono text-amber-400">{androidReqs.toLocaleString()} ({trafficPercent(androidReqs)}%)</span>
               </div>
               <div className="h-1.5 bg-slate-900 rounded-full overflow-hidden">
-                <div className="h-full bg-amber-500 rounded-full" style={{ width: `${(androidReqs / totalRequests) * 100}%` }} />
+                <div className="h-full bg-amber-500 rounded-full" style={{ width: trafficWidth(androidReqs) }} />
               </div>
             </div>
 
             <div className="p-3 bg-slate-950/70 border border-slate-800/80 rounded-lg space-y-2">
               <div className="flex justify-between text-xs">
                 <span className="text-slate-300 font-medium">Unknown / Unclassified</span>
-                <span className="font-mono text-slate-400">{unknownReqs.toLocaleString()} ({((unknownReqs / totalRequests) * 100).toFixed(1)}%)</span>
+                <span className="font-mono text-slate-400">{unknownReqs.toLocaleString()} ({trafficPercent(unknownReqs)}%)</span>
               </div>
               <div className="h-1.5 bg-slate-900 rounded-full overflow-hidden">
-                <div className="h-full bg-slate-600 rounded-full" style={{ width: `${(unknownReqs / totalRequests) * 100}%` }} />
+                <div className="h-full bg-slate-600 rounded-full" style={{ width: trafficWidth(unknownReqs) }} />
               </div>
             </div>
           </div>
